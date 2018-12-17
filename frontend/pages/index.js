@@ -193,7 +193,7 @@ const Pricing = () =>
       buttonFilled={true}
       accentColor="#fb9353"
       subtitle="Most Popular"
-      buttonText="Try Now - No sign up"
+      buttonText="Try Now - No Sign Up"
       title="Basic" />
     <PriceCard
       price={25}
