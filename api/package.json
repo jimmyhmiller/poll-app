@@ -5,9 +5,11 @@
   "license": "MIT",
   "dependencies": {
     "dotenv": "^6.2.0",
+    "faunadb": "^2.5.2",
     "micro": "^9.3.3",
     "request": "^2.88.0",
     "urlencoded-body-parser": "^2.0.1",
+    "uuid": "^3.3.2",
     "zaphod": "^0.2.1"
   }
 }

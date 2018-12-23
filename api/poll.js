@@ -1,5 +1,12 @@
+require('dotenv').config();
 const { send } = require('micro');
 const parseUrlEncode = require('urlencoded-body-parser');
+const { buildMessage, buildPoll, buildOptions } = require('./util');
+
+const faunadb = require("faunadb");
+const q = faunadb.query;
+
+const client = new faunadb.Client({ secret: process.env.FAUNA_SECRET });
 
 const cleanString = (str) =>
   str.replace(/(\u201C|\u201D)/g, '')
@@ -7,48 +14,27 @@ const cleanString = (str) =>
 
 const parseBody = async (req) => {
   const body = await parseUrlEncode(req);
-  return cleanString(body.text).split(",")
-}
-
-const buildActions = (answers) => {
-  return answers.map((answer, i) => ({
-    text: `${answer}`,
-    type: "button",
-    value: `${i}`,
-    name: `${i}`,
-  }))
-}
-
-const buildFields = (answers) => {
-  return answers.map((answer, i) => ({
-    value: `• ${answer}`,
-    short: false,
-  }))
-}
-
-const buildMessage = ({ question, answers }) => {
+  const [question, ...options] = cleanString(body.text).split(",")
   return {
-    response_type: "in_channel",
-    replace_original: "false",
-    "attachments": [{
-      "pretext": "This survey is anonymous",
-        "title": question,
-      "mrkdwn_in": ["fields"],
-      "fields": buildFields(answers),
-      "fallback": "Your interface does not support interactive messages.",
-      "callback_id": "123",
-      actions: buildActions(answers)
-    }]
+    question,
+    options: buildOptions(options),
   }
 }
 
+const createPoll = (poll) => {
+  return client.query(q.Create(q.Class("polls"), poll))
+}
 
 module.exports = async (req, res) => {
   try {
-    const [question, ...answers] = await parseBody(req);
+    const {question, options} = await parseBody(req);
+    const poll = buildPoll(question, options);
+    await createPoll(poll);
+
     send(res, 200, buildMessage({
       question,
-      answers,
+      options,
+      callback_id: poll.data.callback_id,
     }));
   } catch (e) {
     send(res, 200, {
@@ -58,11 +44,6 @@ module.exports = async (req, res) => {
     })
   }
 };
-
-
-// module.exports = {
-//   buildMessage
-// }
 
 
 

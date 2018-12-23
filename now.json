@@ -11,7 +11,8 @@
   ],
   "env": {
     "CLIENT_ID": "@slack-client-id",
-    "CLIENT_SECRET": "@slack-client-secret"
+    "CLIENT_SECRET": "@slack-client-secret",
+    "FAUNA_SECRET": "@faunadb-secret"
   },
   "routes": [
     {

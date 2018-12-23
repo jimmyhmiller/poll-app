@@ -183,7 +183,7 @@ const Pricing = () =>
   <Flex direction="row" justify="center" align="flex-end">
     <PriceCard
       price={0}
-      features={["Non-Commercial Use", "Up to 10 users"]}
+      features={["Non-Commercial Use", "25 polls a month"]}
       accentColor="rgb(57 104 178)"
       buttonText="Add To Slack"
       title="Personal" />
