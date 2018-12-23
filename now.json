@@ -16,24 +16,31 @@
   },
   "routes": [
     {
-      "src": "/poll", 
-      "dest": "/api/poll.js" 
+      "src": "^/poll",
+      "dest": "/api/poll.js"
     },
     {
-      "src": "/oauth", 
+      "src": "^/oauth",
       "dest": "/api/oauth.js"
     },
     {
-      "src": "/actions", 
-      "dest": "/api/actions.js" 
+      "src": "^/actions",
+      "dest": "/api/actions.js"
     },
     {
-      "src": "/", 
-      "dest": "/frontend/" 
+      "src": "^/",
+      "dest": "/frontend/",
+      "headers": {"cache-control": "s-maxage=31536000"}
     },
     {
-      "src": "/static/(.*)", 
-      "dest": "/frontend/static/$1" 
+      "src": "^/static/(.*)",
+      "dest": "/frontend/static/$1",
+      "headers": {"cache-control": "s-maxage=31536000"}
+    },
+    {
+      "src": "^/_next/static/(.*)$",
+      "dest": "/frontend/_next/static/$1",
+      "headers": {"cache-control": "s-maxage=31536000"}
     }
   ]
 }

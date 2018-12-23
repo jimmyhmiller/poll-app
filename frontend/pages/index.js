@@ -214,6 +214,7 @@ export default (props) =>
   <>
     <Head>
       <title>Poll App - Slack polls made easy</title>
+      <link rel="icon" type="image/png" href="/static/favicon.png" sizes="196x196" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     </Head>
     <GlobalStyles />
@@ -243,7 +244,7 @@ export default (props) =>
         </Flex>
 
         <Flex direction="column" justify="center" align="center">
-          <img style={{width: 253, height: 500}} src="/static/iphone-white.png" />
+          <img style={{width: 253, height: 500}} src="/static/pixel-white.png" />
         </Flex>
       </Flex>
     </Container>
