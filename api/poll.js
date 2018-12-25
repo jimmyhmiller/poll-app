@@ -9,17 +9,21 @@ const q = faunadb.query;
 const client = new faunadb.Client({ secret: process.env.FAUNA_SECRET });
 
 const cleanString = (str) =>
-  str.replace(/(\u201C|\u201D)/g, '')
-     .replace(/"/g, '')
+  str.replace(/"/g, '')
 
-const parseBody = async (req) => {
+const removeSmartQuotes = (str) =>
+  str.replace(/(\u201C|\u201D)/g, '"')
+
+const parseBody = async req => {
   const body = await parseUrlEncode(req);
-  const [question, ...options] = cleanString(body.text).split(",")
+  const [question, ...options] = removeSmartQuotes(body.text)
+    .match(/".*?"/g)
+    .map(cleanString);
   return {
     question,
-    options: buildOptions(options),
-  }
-}
+    options: buildOptions(options)
+  };
+};
 
 const createPoll = (poll) => {
   return client.query(q.Create(q.Class("polls"), poll))
