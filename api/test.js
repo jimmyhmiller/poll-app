@@ -1,15 +1,23 @@
 const { buildMessage, buildPoll, buildOptions } = require('./util');
 const { vote, getVoteData, buildResponse } = require('./actions');
-
+require("./poll")
 
 console.log = (...args) => {
   console.dir(args, {depth: null})
 }
 
 
+const request = {
+  question: "What is is is?",
+  options: buildOptions(["Thing", "Stuff"]),
+  body: {
+    channel_id: "123"
+  }
+}
+
 const message = buildMessage({ 
   question: "What is is is?",
-  options: buildOptions(["Thing", "Stuff"])
+  options: buildOptions(["Thing", "Stuff"]),
 })
 
 
@@ -49,6 +57,8 @@ const run = async () => {
     console.log(buildResponse(updatedPoll1))
     const updatedPoll2 = await vote(getVoteData(actionMessage2))
     console.log(buildResponse(updatedPoll2))
+
+    console.log(buildPoll(request))
   } catch (e) {
     console.error(e)
   }

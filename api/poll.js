@@ -21,7 +21,8 @@ const parseBody = async req => {
     .map(cleanString);
   return {
     question,
-    options: buildOptions(options)
+    options: buildOptions(options),
+    body,
   };
 };
 
@@ -31,8 +32,8 @@ const createPoll = (poll) => {
 
 module.exports = async (req, res) => {
   try {
-    const {question, options} = await parseBody(req);
-    const poll = buildPoll(question, options);
+    const {question, options, body} = await parseBody(req);
+    const poll = buildPoll({question, options, body});
     await createPoll(poll);
 
     send(res, 200, buildMessage({
@@ -42,13 +43,9 @@ module.exports = async (req, res) => {
     }));
   } catch (e) {
     send(res, 200, {
-      text: `Failed to get body ${e.message}`,
+      text: `Error Occurred ${e.message}`,
       response_type: "ephemeral",
       replace_original: false
     })
   }
 };
-
-
-
-
