@@ -7,6 +7,7 @@
     "dotenv": "^6.2.0",
     "faunadb": "^2.5.2",
     "micro": "^9.3.3",
+    "partition-all": "^1.0.1",
     "request": "^2.88.0",
     "urlencoded-body-parser": "^2.0.1",
     "uuid": "^3.3.2",

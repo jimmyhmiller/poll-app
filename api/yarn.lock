@@ -87,6 +87,11 @@ chalk@2.4.0:
     escape-string-regexp "^1.0.5"
     supports-color "^5.3.0"
 
+chickencurry@^1.2.1:
+  version "1.4.0"
+  resolved "https://registry.yarnpkg.com/chickencurry/-/chickencurry-1.4.0.tgz#d38313b12371c1eb24a3466b4f791453b7a58d79"
+  integrity sha1-04MTsSNxwesko0ZrT3kUU7eljXk=
+
 color-convert@^1.9.0:
   version "1.9.3"
   resolved "https://registry.yarnpkg.com/color-convert/-/color-convert-1.9.3.tgz#bb71850690e1f136567de629d2d5471deda4c1e8"
@@ -413,6 +418,13 @@ object-assign@^4.1.0:
   version "4.1.1"
   resolved "https://registry.yarnpkg.com/object-assign/-/object-assign-4.1.1.tgz#2109adc7965887cfc05cbbd442cac8bfbb360863"
   integrity sha1-IQmtx5ZYh8/AXLvUQsrIv7s2CGM=
+
+partition-all@^1.0.1:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/partition-all/-/partition-all-1.0.1.tgz#76a1cf6daddfddf95c181941feb46fad8056a74f"
+  integrity sha1-dqHPba3f3flcGBlB/rRvrYBWp08=
+  dependencies:
+    chickencurry "^1.2.1"
 
 performance-now@^2.1.0:
   version "2.1.0"

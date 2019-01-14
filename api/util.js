@@ -1,4 +1,5 @@
 const uuid = require('uuid/v4');
+const partitionAll = require('partition-all');
 const faunadb = require("faunadb");
 const q = faunadb.query;
 
@@ -24,15 +25,6 @@ const parseMessage = text => {
     anonymous,
   };
 };
-
-const buildActions = (options) => {
-  return options.map((option, i) => ({
-    text: `${option.value}`,
-    type: "button",
-    value: `${i}`,
-    name: `${i}`,
-  }))
-}
 
 const buildAnonymousVotes = (option) => {
   if (option.votes.length > 0) {
@@ -65,19 +57,40 @@ const buildFields = (options, anonymous) => {
   }))
 }
 
+const buildActions = (options) => {
+  return options.map((option, i) => ({
+    text: `${option.value}`,
+    type: "button",
+    value: `${i}`,
+    name: `${i}`,
+  }))
+}
+
+const buildActionAttachments = (options, callback_id) => {
+  const actions = buildActions(options);
+  const groups = partitionAll(5, actions);
+  return groups.map(group => {
+    return {
+      fallback: "Your interface does not support interactive messages.",
+      callback_id,
+      actions: group,
+    }
+  })
+}
+
 const buildMessage = ({ question, options, callback_id, anonymous }) => {
+  const actions = buildActions(options)
   return {
     response_type: "in_channel",
     replace_original: "false",
     attachments: [{
       pretext: anonymous ? "This survey is anonymous" : null,
-        title: question,
+      title: question,
       mrkdwn_in: ["fields"],
       fields: buildFields(options, anonymous),
       fallback: "Your interface does not support interactive messages.",
       callback_id: callback_id,
-      actions: buildActions(options)
-    }]
+    }].concat(buildActionAttachments(options, callback_id))
   }
 }
 

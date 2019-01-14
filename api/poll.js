@@ -25,7 +25,9 @@ module.exports = async (req, res) => {
       anonymous,
       callback_id: poll.data.callback_id,
     }));
+
   } catch (e) {
+
     send(res, 200, {
       text: `Error Occurred ${e.message}`,
       response_type: "ephemeral",
