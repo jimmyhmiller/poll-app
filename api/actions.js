@@ -22,14 +22,15 @@ const getActionIndex = (body) => {
 
 const getVoteData = (body) => ({
   index: parseInt(body.actions[0].value,10),
-  voter: body.user.name,
+  voter: body.user.id,
   callback_id: body.callback_id,
 })
 
 const extractData = (poll) => ({
   question: poll.data.question,
   options: poll.data.options,
-  callback_id: poll.data.callback_id
+  callback_id: poll.data.callback_id,
+  anonymous: poll.data.anonymous,
 })
 
 const vote = ({ callback_id, voter, index }) => {

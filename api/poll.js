@@ -1,30 +1,12 @@
 require('dotenv').config();
 const { send } = require('micro');
 const parseUrlEncode = require('urlencoded-body-parser');
-const { buildMessage, buildPoll, buildOptions } = require('./util');
+const { parseMessage, buildMessage, buildPoll, buildOptions } = require('./util');
 
 const faunadb = require("faunadb");
 const q = faunadb.query;
 
 const client = new faunadb.Client({ secret: process.env.FAUNA_SECRET });
-
-const cleanString = (str) =>
-  str.replace(/"/g, '')
-
-const removeSmartQuotes = (str) =>
-  str.replace(/(\u201C|\u201D)/g, '"')
-
-const parseBody = async req => {
-  const body = await parseUrlEncode(req);
-  const [question, ...options] = removeSmartQuotes(body.text)
-    .match(/".*?"/g)
-    .map(cleanString);
-  return {
-    question,
-    options: buildOptions(options),
-    body,
-  };
-};
 
 const createPoll = (poll) => {
   return client.query(q.Create(q.Class("polls"), poll))
@@ -32,13 +14,15 @@ const createPoll = (poll) => {
 
 module.exports = async (req, res) => {
   try {
-    const {question, options, body} = await parseBody(req);
-    const poll = buildPoll({question, options, body});
+    const body = await parseUrlEncode(req);
+    const {question, options, anonymous} = parseMessage(body.text);
+    const poll = buildPoll({question, options, body, anonymous});
     await createPoll(poll);
 
     send(res, 200, buildMessage({
       question,
       options,
+      anonymous,
       callback_id: poll.data.callback_id,
     }));
   } catch (e) {

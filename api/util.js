@@ -2,6 +2,29 @@ const uuid = require('uuid/v4');
 const faunadb = require("faunadb");
 const q = faunadb.query;
 
+const cleanString = (str) =>
+  str.replace(/"/g, '')
+
+const removeSmartQuotes = (str) =>
+  str.replace(/(\u201C|\u201D)/g, '"')
+
+const parseMessage = text => {
+  const cleanedText = removeSmartQuotes(text)
+  const [question, ...options] = cleanedText
+    .match(/".*?"/g)
+    .map(cleanString);
+
+  const anonymous = cleanedText
+    .substring(cleanedText.lastIndexOf("\""))
+    .includes("anonymous")
+
+  return {
+    question,
+    options: buildOptions(options),
+    anonymous,
+  };
+};
+
 const buildActions = (options) => {
   return options.map((option, i) => ({
     text: `${option.value}`,
@@ -11,7 +34,7 @@ const buildActions = (options) => {
   }))
 }
 
-const voteCount = (option) => {
+const buildAnonymousVotes = (option) => {
   if (option.votes.length > 0) {
     return ` \`${option.votes.length}\``
   } else {
@@ -19,22 +42,38 @@ const voteCount = (option) => {
   }
 }
 
-const buildFields = (options) => {
+const buildVotes = (option) => {
+  if (option.votes.length > 0) {
+    const users = option.votes.map(vote => `<@${vote}>`).join(" ")
+    const voteCount = buildAnonymousVotes(option);
+    return `${voteCount}\n ${users}`
+  }
+  return ""
+}
+
+const votes = (option, anonymous) => {
+  if (anonymous) {
+    return buildAnonymousVotes(option)
+  }
+  return buildVotes(option)
+}
+
+const buildFields = (options, anonymous) => {
   return options.map((option, i) => ({
-    value: `• ${option.value}${voteCount(option)}`,
+    value: `• ${option.value}${votes(option, anonymous)}`,
     short: false,
   }))
 }
 
-const buildMessage = ({ question, options, callback_id }) => {
+const buildMessage = ({ question, options, callback_id, anonymous }) => {
   return {
     response_type: "in_channel",
     replace_original: "false",
     attachments: [{
-      pretext: "This survey is anonymous",
+      pretext: anonymous ? "This survey is anonymous" : null,
         title: question,
       mrkdwn_in: ["fields"],
-      fields: buildFields(options),
+      fields: buildFields(options, anonymous),
       fallback: "Your interface does not support interactive messages.",
       callback_id: callback_id,
       actions: buildActions(options)
@@ -72,22 +111,22 @@ const getChannel = (body) => {
   return createIfNotExists("channels", channelRef, { data: { channel_id }})
 }
 
-const buildPoll = ({question, options, body}) => {
+const buildPoll = ({question, options, body, anonymous}) => {
   return {
     data: {
       callback_id: uuid(),
       channel: getChannel(body),
       startOfMonth: startOfMonth(),
-      anonymous: true,
-      question: question,
-      options: options,
+      anonymous,
+      question,
+      options,
     }
   }
 }
-
 
 module.exports = {
   buildMessage,
   buildPoll,
   buildOptions,
+  parseMessage,
 }
