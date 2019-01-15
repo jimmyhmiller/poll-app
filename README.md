@@ -4,7 +4,8 @@ A polling app for slack
 
 ## Todo
 - [x] Delete Message Button
-- [ ] Create Channel on Oauth
+- [x] Channel was wrong, need team
+- [x] Create team on Oauth
 - [ ] Keep counts by month
 - [ ] Message when over counts
 - [ ] Handle free trial

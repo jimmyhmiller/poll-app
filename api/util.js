@@ -130,19 +130,16 @@ const startOfMonth = () =>
 const getRefByIndex = (index, value) =>
   q.Select("ref", q.Get(q.Match(q.Index(index), value)))
 
-
-const getChannel = (body) => {
-  const indexName = "channels-by-channel-id";
-  const channel_id = body.channel_id;
-  const channelRef = matchIndex(indexName, channel_id);
-  return createIfNotExists("channels", channelRef, { data: { channel_id }})
+const createTeamIfNotExists = (team_id) => {
+  const teamRef = matchIndex("teams-by-team-id", team_id);
+  return createIfNotExists("teams", teamRef, { data: { team_id }})
 }
 
 const buildPoll = ({question, options, body, anonymous}) => {
   return {
     data: {
       callback_id: uuid(),
-      channel: getChannel(body),
+      team: matchIndex("teams-by-team-id", body.team_id),
       startOfMonth: startOfMonth(),
       anonymous,
       question,
@@ -156,4 +153,5 @@ module.exports = {
   buildPoll,
   buildOptions,
   parseMessage,
+  createTeamIfNotExists,
 }
