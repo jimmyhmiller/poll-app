@@ -127,6 +127,27 @@ const matchIndex = (index, value) =>
 const startOfMonth = () =>
   `${new Date().toISOString().substring(0, 7)}-01`
 
+
+const incrementMonth = (poll) => {
+  const now = startOfMonth();
+  const team = q.Get(poll.data.team);
+  const teamRef = q.Select("ref", team);
+
+  return (
+    q.Let({
+      currentCount: q.Select(["data", "monthlyCounts", now], team, 0)
+    },
+      q.Update(teamRef, {
+        data: {
+          monthlyCounts: {
+            [now]: q.Add(1, q.Var("currentCount"))
+          }
+        }
+      })
+    )
+  )
+}
+
 const getRefByIndex = (index, value) =>
   q.Select("ref", q.Get(q.Match(q.Index(index), value)))
 
@@ -140,7 +161,6 @@ const buildPoll = ({question, options, body, anonymous}) => {
     data: {
       callback_id: uuid(),
       team: matchIndex("teams-by-team-id", body.team_id),
-      startOfMonth: startOfMonth(),
       anonymous,
       question,
       options,
@@ -154,4 +174,5 @@ module.exports = {
   buildOptions,
   parseMessage,
   createTeamIfNotExists,
+  incrementMonth,
 }
