@@ -57,13 +57,27 @@ const buildFields = (options, anonymous) => {
   }))
 }
 
+const deleteButton = ({
+  text: "Delete Poll",
+  type: "button",
+  style: "danger",
+  value: "delete-poll",
+  name: "delete-poll",
+  confirm: {
+    title: "Delete Poll?",
+    text: "Are you sure you want to delete this poll? This cannot be undone.",
+    ok_text: "Delete",
+    dismiss_text: "No",
+  },
+})
+
 const buildActions = (options) => {
   return options.map((option, i) => ({
     text: `${option.value}`,
     type: "button",
     value: `${i}`,
     name: `${i}`,
-  }))
+  })).concat([deleteButton])
 }
 
 const buildActionAttachments = (options, callback_id) => {
@@ -71,7 +85,7 @@ const buildActionAttachments = (options, callback_id) => {
   const groups = partitionAll(5, actions);
   return groups.map(group => {
     return {
-      fallback: "Your interface does not support interactive messages.",
+      fallback: "A new poll was made.",
       callback_id,
       actions: group,
     }
@@ -88,7 +102,7 @@ const buildMessage = ({ question, options, callback_id, anonymous }) => {
       title: question,
       mrkdwn_in: ["fields"],
       fields: buildFields(options, anonymous),
-      fallback: "Your interface does not support interactive messages.",
+      fallback: "A new poll was made.",
       callback_id: callback_id,
     }].concat(buildActionAttachments(options, callback_id))
   }

@@ -3,7 +3,7 @@ A polling app for slack
 
 
 ## Todo
-- [ ] Delete Message Button
+- [x] Delete Message Button
 - [ ] Create Channel on Oauth
 - [ ] Keep counts by month
 - [ ] Message when over counts

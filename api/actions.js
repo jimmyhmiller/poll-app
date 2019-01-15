@@ -21,7 +21,7 @@ const getActionIndex = (body) => {
 }
 
 const getVoteData = (body) => ({
-  index: parseInt(body.actions[0].value,10),
+  index: parseInt(body.actions[0].value, 10),
   voter: body.user.id,
   callback_id: body.callback_id,
 })
@@ -45,17 +45,32 @@ const buildResponse = (poll) => {
   }
 }
 
+const deleteMessage = ({
+  text: "Your poll has been deleted.",
+  response_type: "ephemeral",
+  replace_original: true,
+})
+
 module.exports = async (req, res) => {
   try {
     const body = await parseBody(req);
+
+    if (body.actions[0].value === "delete-poll") {
+      send(res, 200, deleteMessage)
+      return;
+    }
+
     const updatedPoll = await vote(getVoteData(body))
     send(res, 200, buildResponse(updatedPoll));
+
   } catch (e) {
+
     send(res, 200, {
       text: `Failed to get body ${e.message}`,
       response_type: "ephemeral",
       replace_original: false
     })
+
   }
 };
 
