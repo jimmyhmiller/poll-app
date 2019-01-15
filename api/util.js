@@ -128,14 +128,28 @@ const startOfMonth = () =>
   `${new Date().toISOString().substring(0, 7)}-01`
 
 
+const currentCount = (poll) => {
+  return q.Select(
+    ["data", "monthlyCounts", startOfMonth()],
+    q.Get(poll.data.team),
+    0
+  )
+}
+
+const maxCount = (poll) => {
+  return q.Select(
+    ["data", "maxCount"],
+    q.Get(poll.data.team),
+    5
+  )
+}
+
 const incrementMonth = (poll) => {
   const now = startOfMonth();
-  const team = q.Get(poll.data.team);
-  const teamRef = q.Select("ref", team);
-
+  const teamRef = q.Select("ref", q.Get(poll.data.team));
   return (
     q.Let({
-      currentCount: q.Select(["data", "monthlyCounts", now], team, 0)
+      currentCount: currentCount(poll)
     },
       q.Update(teamRef, {
         data: {
@@ -175,4 +189,6 @@ module.exports = {
   parseMessage,
   createTeamIfNotExists,
   incrementMonth,
+  currentCount,
+  maxCount,
 }

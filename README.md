@@ -1,5 +1,5 @@
 # poll-app
-A polling app for slack
+A [polling app](https://poll-app.now.sh) for slack
 
 
 ## Todo
@@ -7,9 +7,7 @@ A polling app for slack
 - [x] Channel was wrong, need team
 - [x] Create team on Oauth
 - [x] Keep counts by month
-- [ ] Implement Tiers
-- [ ] Message when over counts
-- [ ] Handle free trial
-- [ ] Add test poll ability
+- [x] Message when over counts
 - [ ] Subscriptions page
+- [ ] Add test poll ability
 - [ ] Stripe integration
