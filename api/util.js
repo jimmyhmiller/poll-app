@@ -92,7 +92,13 @@ const buildActionAttachments = (options, callback_id) => {
   })
 }
 
-const buildMessage = ({ question, options, callback_id, anonymous }) => {
+const ephemeralMessage = (text) => ({
+  text,
+  response_type: "ephemeral",
+  replace_original: false
+})
+
+const buildPollMessage = ({ question, options, callback_id, anonymous }) => {
   const actions = buildActions(options)
   return {
     response_type: "in_channel",
@@ -124,8 +130,18 @@ const createIfNotExists = (className, ref, value) =>
 const matchIndex = (index, value) =>
   q.Match(q.Index(index), value)
 
+const today = () => new Date().toISOString().substring(0, 10)
+
+
+const addDays = (date, days) => {
+  // the fact that dates are mutable is terrible
+  const newDate = new Date(date);
+  newDate.setDate(newDate.getDate() + days);
+  return newDate.toISOString().substring(0, 10);
+}
+
 const startOfMonth = () =>
-  `${new Date().toISOString().substring(0, 7)}-01`
+  `${today().substring(0, 7)}-01`
 
 
 const currentCount = (poll) => {
@@ -141,6 +157,35 @@ const maxCount = (poll) => {
     ["data", "maxCount"],
     q.Get(poll.data.team),
     5
+  )
+}
+
+const setExpirationDate = (date, team_id) => {
+  const teamRef = q.Select("ref", q.Get(matchIndex("teams-by-team-id", team_id)));
+  return (
+    q.Update(teamRef, {
+      data: {
+        expirationDate: date && q.Date(date)
+      }
+    })
+  )
+}
+
+const teamIsExpired = (poll) => {
+  const defaultValue = q.Date(addDays(today(), 1));
+  const todaysDate = q.Date(today());
+
+  // Default value is tomorrow so it is always greater than today.
+  // This works even if we somehow crossed a day boundry between
+  // these two lines of code.
+  return (
+    q.GT(
+      todaysDate,
+      q.Select(
+        ["data", "expirationDate"],
+        q.Get(poll.data.team),
+        defaultValue)
+    )
   )
 }
 
@@ -183,7 +228,7 @@ const buildPoll = ({question, options, body, anonymous}) => {
 }
 
 module.exports = {
-  buildMessage,
+  buildPollMessage,
   buildPoll,
   buildOptions,
   parseMessage,
@@ -191,4 +236,9 @@ module.exports = {
   incrementMonth,
   currentCount,
   maxCount,
+  teamIsExpired,
+  ephemeralMessage,
+  setExpirationDate,
+  addDays,
+  today,
 }

@@ -2,7 +2,7 @@ require('dotenv').config();
 const { send, json, text } = require('micro');
 const parseUrlEncode = require('urlencoded-body-parser');
 const { setIn } = require('zaphod/compat');
-const { buildMessage } = require('./util');
+const { buildPollMessage } = require('./util');
 
 const faunadb = require("faunadb");
 const q = faunadb.query;
@@ -39,7 +39,7 @@ const vote = ({ callback_id, voter, index }) => {
 
 const buildResponse = (poll) => {
   return {
-    ...buildMessage(extractData(poll)),
+    ...buildPollMessage(extractData(poll)),
     response_type: "in_channel",
     replace_original: true
   }
