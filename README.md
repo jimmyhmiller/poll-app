@@ -8,6 +8,10 @@ A [polling app](https://poll-app.now.sh) for slack
 - [x] Create team on Oauth
 - [x] Keep counts by month
 - [x] Message when over counts
+- [x] Handle Expirations
+- [x] Test Stripe integration
+- [ ] Figure out properly stripe flow
+- [ ] Handle User Sessions
 - [ ] Subscriptions page
 - [ ] Add test poll ability
-- [ ] Stripe integration
+- [ ] Add poll help command

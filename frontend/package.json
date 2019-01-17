@@ -5,8 +5,8 @@
   "license": "MIT",
   "dependencies": {
     "next": "^7.0.2",
-    "react": "^16.6.3",
-    "react-dom": "^16.6.3",
+    "react": "16.8.0-alpha.0",
+    "react-dom": "16.8.0-alpha.0",
     "tinycolor2": "^1.4.1"
   },
   "scripts": {

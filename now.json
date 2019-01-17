@@ -6,13 +6,15 @@
     { "src": "api/poll.js", "use": "@now/node" },
     { "src": "api/actions.js", "use": "@now/node" },
     { "src": "api/oauth.js", "use": "@now/node" },
+    { "src": "api/subscriptions.js", "use": "@now/node" },
     { "src": "frontend/next.config.js", "use": "@now/next"},
     { "src": "frontend/static/*", "use": "@now/static" }
   ],
   "env": {
     "CLIENT_ID": "@slack-client-id",
     "CLIENT_SECRET": "@slack-client-secret",
-    "FAUNA_SECRET": "@faunadb-secret"
+    "FAUNA_SECRET": "@faunadb-secret",
+    "STRIPE_SECRET": "@stripe-secret"
   },
   "routes": [
     {
@@ -26,6 +28,10 @@
     {
       "src": "^/actions",
       "dest": "/api/actions.js"
+    },
+    {
+      "src": "^/subscriptions",
+      "dest": "/api/subscriptions.js"
     },
     {
       "src": "^/",

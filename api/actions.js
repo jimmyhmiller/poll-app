@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { send, json, text } = require('micro');
+const { send } = require('micro');
 const parseUrlEncode = require('urlencoded-body-parser');
 const { setIn } = require('zaphod/compat');
 const { buildPollMessage } = require('./util');

@@ -9,8 +9,12 @@
     "micro": "^9.3.3",
     "partition-all": "^1.0.1",
     "request": "^2.88.0",
+    "stripe": "^6.20.1",
     "urlencoded-body-parser": "^2.0.1",
     "uuid": "^3.3.2",
     "zaphod": "^0.2.1"
+  },
+  "devDependencies": {
+    "micro-dev": "^3.0.0"
   }
 }
