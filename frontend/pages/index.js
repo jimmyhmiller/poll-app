@@ -7,7 +7,7 @@ import tinycolor from "tinycolor2"
 const GlobalStyles = () =>
   <style jsx global>{`
     body {
-      margin-top: 20px;
+      margin: 0px;
       font-family: "Roboto", "Helvetica", "Arial", sans-serif;
       font-size: 20px;
     }
@@ -29,11 +29,11 @@ const GlobalStyles = () =>
     }
 
     .flex.flex-row {
-      flex-direction: row; 
+      flex-direction: row;
     }
 
     .flex.flex-column {
-      flex-direction: column; 
+      flex-direction: column;
     }
 
     .next-to {
@@ -42,25 +42,30 @@ const GlobalStyles = () =>
 
     @media (max-width: 1000px) {
       .flex.flex-row {
-        flex-direction: column; 
+        flex-direction: column;
       }
+    }
+    a {
+      text-decoration: none;
     }
 
   `}
   </style>
 
 
-const Flex = ({ children, direction="default", justify, align, className="flex", style={} }) => 
+const Flex = ({ children, direction="default", justify, align, alignSelf, className="flex", style={}, flex }) =>
   <div className={className + " flex-" + direction} style={{
     justifyContent: justify,
     alignItems: align,
+    flex: flex,
+    alignSelf: alignSelf,
     ...style,
   }}>
     {children}
   </div>
 
-const Container = ({style={}, ...props}) => 
-  <Flex 
+const Container = ({style={}, ...props}) =>
+  <Flex
     style={{
       "flex": 1,
       margin: "auto",
@@ -68,12 +73,12 @@ const Container = ({style={}, ...props}) =>
     }}
     {...props} />
 
-const Heading1 = ({ text, align="left" }) => 
+const Heading1 = ({ text, align="left" }) =>
   <h1 style={{textAlign: align}}>
     {text}
   </h1>
 
-const Heading3 = ({ text, align="left", style={} }) => 
+const Heading3 = ({ text, align="left", style={} }) =>
   <h3 style={{
       textAlign: align,
       ...style
@@ -81,16 +86,20 @@ const Heading3 = ({ text, align="left", style={} }) =>
     {text}
   </h3>
 
-const Text = ({ children, align="left", secondary, style={} }) => 
+const Text = ({ children, align="left", secondary, size, style={}, color, href }) =>
   <p style={{
     textAlign: align,
-    color: secondary ? "rgba(0, 0, 0, 0.54)" : "#000",
+    fontSize: size,
+    color: color || (secondary ? "rgba(0, 0, 0, 0.54)" : "#000"),
     ...style,
   }}>
-    {children}
+    { href ?
+      <a style={{color}} href={href}>{children}</a> :
+      children
+    }
   </p>
 
-const Card = ({ children, accentColor }) => 
+const Card = ({ children, accentColor }) =>
   <div
     style={{
       borderTop: `5px ${accentColor} solid`,
@@ -108,7 +117,7 @@ const Card = ({ children, accentColor }) =>
 
 const Button = ({ children, color, filled, onClick = ()=>{} }) => {
   const backgroundColor = filled ? color : "white";
-  const hoverColor = filled ? 
+  const hoverColor = filled ?
                     tinycolor(backgroundColor).darken().toString()
                     : tinycolor(color).setAlpha(0.2).toString()
   return (
@@ -137,10 +146,14 @@ const Button = ({ children, color, filled, onClick = ()=>{} }) => {
   )
 }
 
+
+
+
 const PriceCard = ({
   title,
   subtitle,
   buttonText,
+  textColor="black",
   buttonColor,
   accentColor,
   features,
@@ -150,24 +163,24 @@ const PriceCard = ({
 }) => (
   <Flex>
     <Card accentColor={accentColor}>
-      <Heading3 style={{ margin: 0 }} text={title} align="center" />
+      <Heading3 style={{ margin: 0, color: textColor }} text={title} align="center" />
       {subtitle && (
-        <Text style={{ margin: 0 }} secondary align="center">
+        <Text style={{ margin: 0, color: textColor }} secondary align="center">
           {subtitle}
         </Text>
       )}
       <div>
         <Flex direction="row" justify="center" align="center">
           <Text
-            style={{ marginTop: 5, marginBottom: 0, fontSize: 32 }}
+            style={{ marginTop: 5, marginBottom: 0, fontSize: 32, color: textColor }}
             align="center"
           >
-            ${price}<span style={{fontSize:20}}>/mo</span>
+            ${price}<span style={{fontSize:20, color: textColor}}>/mo</span>
           </Text>
         </Flex>
         <div style={{margin: 10}}>
-          {features.map(feature => 
-            <Text style={{marginBottom: 5, marginTop: 0}} variant="subtitle1" align="center" key={feature}>
+          {features.map(feature =>
+            <Text style={{marginBottom: 5, marginTop: 0, color: textColor}} variant="subtitle1" align="center" key={feature}>
               {feature}
             </Text>
           )}
@@ -183,8 +196,30 @@ const PriceCard = ({
 );
 
 
+const SelectedPriceCard = (props) =>
+  <PriceCard
+    {...props}
+    subtitle=""
+    features={props.features.slice(0,2).concat(["Currently Active"])}
+    accentColor="rgb(83 166 251)"
+    buttonText="Selected"
+    buttonFilled={true} />
+
+const UnSelectedPriceCard = (props) =>
+  <PriceCard
+    {...props}
+    subtitle=""
+    buttonFilled={false}
+    buttonText="Change Plan"
+    features={props.features.slice(0, 2)}
+    accentColor="gray"
+    textColor="gray"
+    buttonColor="black"/>
+
+
+
 // Placeholder stripe integration
-// I'm not sure the best way to handle this. 
+// I'm not sure the best way to handle this.
 // Ultimately, I need people to login to slack first before paying
 // Maybe, I do that and redirect them with a hash that auto pops up the
 // correct popup? Probably actually just want to use elements instead
@@ -195,18 +230,20 @@ const PriceCard = ({
 // page and should make it easy for people to upgrade/cancel.
 const useStripe = (tokenFn) => {
   const [handler, setHandler] = useState(null);
-  
+
   useEffect(() => {
-    setHandler(
-      StripeCheckout.configure({
-        // This is my publishable test key
-        key: 'pk_test_j1McZfQ85E6wZaJacUIpcV9F',
-        image: '/static/logo-only-bars.png',
-        locale: 'auto',
-        token: tokenFn
-      })
-    );
-  }, []);
+    if (window.StripeCheckout) {
+      setHandler(
+        StripeCheckout.configure({
+          // This is my publishable test key
+          key: 'pk_test_j1McZfQ85E6wZaJacUIpcV9F',
+          image: '/static/logo-only-bars.png',
+          locale: 'auto',
+          token: tokenFn
+        })
+      );
+    }
+  }, [process.browser && window.StripeCheckout]);
 
   return ({ description, amount }) => (e) => {
     handler.open({
@@ -228,7 +265,7 @@ const Pricing = () => {
         accentColor="rgb(57 104 178)"
         buttonText="Add To Slack"
         title="Personal" />
-      <PriceCard 
+      <PriceCard
         price={15}
         features={["50 polls a month", "Unlimited Users", "30 day free trial"]}
         buttonFilled={true}
@@ -255,15 +292,32 @@ const Pricing = () => {
   )
 }
 
+const Header = ({ team }) => {
+  if (!team) {
+    return <div style={{height: 20}} />
+  }
+
+  return (
+    <Flex style={{backgroundColor: "rgb(83, 166, 251)", marginBottom: 20}} direction="row" justify="center">
+      <Flex flex={0.45} />
+      <Flex style={{width:160}} direction="row" justify="space-between" alignSelf="flex-end">
+        <Text href="#" color="white" size={16}>{team}<span style={{fontSize:12}}>▼</span></Text>
+        <Text href="#" color="white" size={16}>Logout</Text>
+      </Flex>
+    </Flex>
+  )
+}
+
 export default (props) =>
   <>
     <Head>
       <title>Poll App - Slack polls made easy</title>
       <link rel="icon" type="image/png" href="/static/favicon.png" sizes="196x196" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <script src="https://checkout.stripe.com/checkout.js"></script>
+      <script src="https://checkout.stripe.com/checkout.js" async></script>
     </Head>
     <GlobalStyles />
+    <Header />
     <Container direction="column" justify="center">
       <Flex direction="row" justify="center">
         <Flex direction="column" justify="center">
