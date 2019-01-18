@@ -57,7 +57,8 @@ const GlobalStyles = () =>
       text-decoration: none;
     }
 
-    // Still work in progress
+
+    // This styles suck, need to figure out what this should look like
 
     fieldset {
       background-color: white;
@@ -295,17 +296,25 @@ const useStripe = (tokenFn) => {
   }
 }
 
+const SwappablePriceCard = (props) =>
+  <Selector
+    items={[
+      <PriceCard {...props} />,
+      <SelectedPriceCard {...props} />,
+      <UnSelectedPriceCard {...props} />,
+    ]} />
+
 const Pricing = () => {
   const openStripe = useStripe((token) => console.log(token));
   return (
     <Flex direction="row" justify="center" align="flex-end">
-      <PriceCard
+      <SwappablePriceCard
         price={0}
         features={["Non-Commercial Use", "25 polls a month"]}
         accentColor="rgb(57 104 178)"
         buttonText="Add To Slack"
         title="Personal" />
-      <PriceCard
+      <SwappablePriceCard
         price={15}
         features={["50 polls a month", "Unlimited Users", "30 day free trial"]}
         buttonFilled={true}
@@ -313,7 +322,7 @@ const Pricing = () => {
         subtitle="Most Popular"
         buttonText="Try Now"
         title="Basic" />
-      <PriceCard
+      <SwappablePriceCard
         price={25}
         features={["100 polls a month", "Unlimited Users"]}
         accentColor="rgb(83 166 251)"
@@ -321,7 +330,7 @@ const Pricing = () => {
         buttonText="Sign Up Now"
         title="Premium"
         onClick={openStripe({ description: "Premium: $25 per Month", amount: 2500 })} />
-      <PriceCard
+      <SwappablePriceCard
         price={50}
         features={["Unlimited polls a month", "Unlimited Users"]}
         accentColor="rgb(63, 140, 251)"
@@ -357,10 +366,10 @@ const CheckoutForm = injectStripe(() =>
         <div style={{borderRadius: "100%",
                      marginTop:-30,
                      backgroundColor: "white",
-                     padding: 15,
+                     padding: 10,
                      border: "3px solid #fff",
                      boxShadow: "0 0 0 1px rgba(0,0,0,.18),0 2px 2px 0 rgba(0,0,0,.08)"}}>
-          <img style={{width: 70, height: 70}} src="/static/logo.png" />
+          <img style={{width: 50, height: 50}} src="/static/logo.png" />
         </div>
         <Text style={{fontWeight: "bold"}}>Poll App</Text>
         <Text secondary style={{margin:0}}>Basic - $15/month</Text>
@@ -387,8 +396,6 @@ const CheckoutForm = injectStripe(() =>
         </div>
         </Flex>
       </fieldset>
-
-        {/*<CardElement style={{base: {iconColor: "rgb(83 166 251)"}}}/>*/}
       <Button color="rgb(83 166 251)" onClick={() => {}}>Subscribe</Button>
     </div>
   </Card>
@@ -407,11 +414,15 @@ const Stripe = () => {
   )
 }
 
-const Toggle = ({ first, second }) => {
-  const [toggle, setToggle] = useState(true);
+const Selector = ({ items }) => {
+  const [selected, setSelected] = useState(0);
   return (
-    <span onClick={() => setToggle(!toggle)}>
-      {toggle ? first : second}
+    <span onClick={(e) => {
+      if (e.metaKey) {
+        setSelected((selected + 1) % items.length)
+      }
+    }}>
+      {items[selected]}
     </span>
   )
 }
@@ -443,7 +454,11 @@ export default (props) =>
         </Flex>
 
         <Flex direction="column" justify="center" align="center">
-          <img style={{width: 253, height: 500, padding: "0 10px"}} src="/static/pixel-white.png" />
+          <Selector
+            items={[
+              <img style={{width: 253, height: 500, padding: "0 10px"}} src="/static/pixel-white.png" />,
+              <Stripe />,
+          ]} />
         </Flex>
       </Flex>
     </Container>
