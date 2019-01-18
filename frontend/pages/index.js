@@ -2,7 +2,15 @@ import React, { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import Head from 'next/head'
 import tinycolor from "tinycolor2"
-
+import {
+  CardElement,
+  injectStripe,
+  Elements,
+  StripeProvider,
+  CardNumberElement,
+  CardExpiryElement,
+  CardCVCElement,
+} from "react-stripe-elements";
 
 const GlobalStyles = () =>
   <style jsx global>{`
@@ -48,6 +56,37 @@ const GlobalStyles = () =>
     a {
       text-decoration: none;
     }
+
+    // Still work in progress
+
+    fieldset {
+      background-color: white;
+      border: none;
+      border-radius: 4px;
+      margin-bottom: 10px;
+      box-shadow: inset 0 1px 1px 0 hsla(240,1%,49%,.3),0 1px 0 0 hsla(0,0%,100%,.7)
+    }
+
+    input {
+      padding-bottom: 10px;
+      width: 100%;
+      background-color: white;
+      -webkit-animation: 1ms void-animation-out;
+      outline: none;
+      border: none;
+    }
+
+    label {
+      padding-bottom: 10px;
+      font-size: 12px;
+      width: 15%;
+      min-width: 70px;
+      color: rgb(83 166 251);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
 
   `}
   </style>
@@ -99,7 +138,7 @@ const Text = ({ children, align="left", secondary, size, style={}, color, href }
     }
   </p>
 
-const Card = ({ children, accentColor }) =>
+const Card = ({ children, accentColor, style={}, padding=20 }) =>
   <div
     style={{
       borderTop: `5px ${accentColor} solid`,
@@ -108,9 +147,10 @@ const Card = ({ children, accentColor }) =>
       boxShadow: "0px 1px 3px 0px rgba(0, 0, 0, 0.2), 0px 1px 1px 0px rgba(0, 0, 0, 0.14), 0px 2px 1px -1px rgba(0, 0, 0, 0.12)",
       borderRadius: 5,
       fontSize: 16,
+      ...style,
     }}
   >
-    <Flex direction="column" justify="center" style={{padding:20}}>
+    <Flex direction="column" justify="center" style={{padding}}>
       {children}
     </Flex>
   </div>
@@ -308,13 +348,81 @@ const Header = ({ team }) => {
   )
 }
 
+
+
+const CheckoutForm = injectStripe(() =>
+  <Card style={{width: 253, height: 400, backgroundColor: "#f5f5f7", marginTop: 90, marginBottom:15}} padding={0}>
+    <div style={{height:180, backgroundColor: "#e8e9eb"}}>
+      <Flex justify="center" align="center" direction="column">
+        <div style={{borderRadius: "100%",
+                     marginTop:-30,
+                     backgroundColor: "white",
+                     padding: 15,
+                     border: "3px solid #fff",
+                     boxShadow: "0 0 0 1px rgba(0,0,0,.18),0 2px 2px 0 rgba(0,0,0,.08)"}}>
+          <img style={{width: 70, height: 70}} src="/static/logo.png" />
+        </div>
+        <Text style={{fontWeight: "bold"}}>Poll App</Text>
+        <Text secondary style={{margin:0}}>Basic - $15/month</Text>
+      </Flex>
+    </div>
+    <div style={{padding:20}}>
+      <fieldset>
+
+        <Flex align="center">
+          {/*<label htmlFor="email">Email</label>*/}
+          <input id="email" type="email" placeholder="janedoe@gmail.com" required="" autocomplete="email" />
+        </Flex>
+      </fieldset>
+      <fieldset>
+        <CardNumberElement />
+      </fieldset>
+      <fieldset>
+        <Flex>
+        <div style={{width: "50%"}}>
+          <CardExpiryElement />
+        </div>
+        <div style={{width: "50%"}}>
+          <CardCVCElement />
+        </div>
+        </Flex>
+      </fieldset>
+
+        {/*<CardElement style={{base: {iconColor: "rgb(83 166 251)"}}}/>*/}
+      <Button color="rgb(83 166 251)" onClick={() => {}}>Subscribe</Button>
+    </div>
+  </Card>
+)
+
+const Stripe = () => {
+  if (!process.browser) {
+    return null;
+  }
+  return (
+    <StripeProvider apiKey="pk_test_j1McZfQ85E6wZaJacUIpcV9F">
+      <Elements>
+        <CheckoutForm />
+      </Elements>
+    </StripeProvider>
+  )
+}
+
+const Toggle = ({ first, second }) => {
+  const [toggle, setToggle] = useState(true);
+  return (
+    <span onClick={() => setToggle(!toggle)}>
+      {toggle ? first : second}
+    </span>
+  )
+}
+
 export default (props) =>
   <>
     <Head>
       <title>Poll App - Slack polls made easy</title>
       <link rel="icon" type="image/png" href="/static/favicon.png" sizes="196x196" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <script src="https://checkout.stripe.com/checkout.js" async></script>
+      <script src="https://js.stripe.com/v3/"></script>
     </Head>
     <GlobalStyles />
     <Header />
@@ -335,7 +443,7 @@ export default (props) =>
         </Flex>
 
         <Flex direction="column" justify="center" align="center">
-          <img style={{width: 253, height: 500}} src="/static/pixel-white.png" />
+          <img style={{width: 253, height: 500, padding: "0 10px"}} src="/static/pixel-white.png" />
         </Flex>
       </Flex>
     </Container>

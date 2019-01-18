@@ -3474,7 +3474,7 @@ prop-types-exact@1.2.0:
     object.assign "^4.1.0"
     reflect.ownkeys "^0.2.0"
 
-prop-types@15.6.2, prop-types@^15.6.2:
+prop-types@15.6.2, prop-types@^15.5.10, prop-types@^15.6.2:
   version "15.6.2"
   resolved "https://registry.yarnpkg.com/prop-types/-/prop-types-15.6.2.tgz#05d5ca77b4453e985d60fc7ff8c859094a497102"
   integrity sha512-3pboPvLiWD7dkI3qf3KbUe6hKFKa52w+AE0VCqECtf+QHAKgOL37tTaNCnuX1nAAQ4ZhyP+kYVKf8rLmJ/feDQ==
@@ -3598,6 +3598,13 @@ react-error-overlay@4.0.0:
   version "4.0.0"
   resolved "https://registry.yarnpkg.com/react-error-overlay/-/react-error-overlay-4.0.0.tgz#d198408a85b4070937a98667f500c832f86bd5d4"
   integrity sha512-FlsPxavEyMuR6TjVbSSywovXSEyOg6ZDj5+Z8nbsRl9EkOzAhEIcS+GLoQDC5fz/t9suhUXWmUrOBrgeUvrMxw==
+
+react-stripe-elements@^2.0.2:
+  version "2.0.2"
+  resolved "https://registry.yarnpkg.com/react-stripe-elements/-/react-stripe-elements-2.0.2.tgz#351ed92e58bd1b69e12d57817353c4190cea6863"
+  integrity sha512-ETyOjOeCmgJdRILzJQ6YsYLqtqgdxZn8jVtdkMQvRQMJCXzu9aKTopPmNGw/iiRk1MonRfG5k46vX5vL2ZOVsA==
+  dependencies:
+    prop-types "^15.5.10"
 
 react@16.8.0-alpha.0:
   version "16.8.0-alpha.0"
