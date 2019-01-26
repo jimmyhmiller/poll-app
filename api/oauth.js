@@ -2,6 +2,7 @@ require('dotenv').config();
 const request = require('request');
 const url = require('url');
 const querystring = require('querystring');
+const redirect = require('micro-redirect')
 const { send } = require('micro');
 const { createTeamIfNotExists } = require('./util');
 
@@ -37,7 +38,7 @@ module.exports = async (req, res) => {
 
     if (json.ok) {
       await client.query(createTeamIfNotExists(json.team_id));
-      send(res, 200, "Success!");
+      redirect(res, 302, "/");
     } else {
       send(res, 400, "Error encountered: \n" + JSON.stringify(json))
     }

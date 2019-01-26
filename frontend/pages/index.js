@@ -188,7 +188,15 @@ const Button = ({ children, color, filled, onClick = ()=>{} }) => {
 }
 
 
-
+const SelectablePriceCard = ({name, selected, ...props}) => {
+  if (selected === "none") {
+    return <PriceCard {...props} />
+  } else if (selected === name) {
+    return <PriceCard {...selectedProps(props)} />
+  } else {
+    return <PriceCard {...unSelectedProps(props)} />
+  }
+}
 
 const PriceCard = ({
   title,
@@ -237,131 +245,94 @@ const PriceCard = ({
 );
 
 
-const SelectedPriceCard = (props) =>
-  <PriceCard
-    {...props}
-    subtitle=""
-    features={props.features.slice(0,2).concat(["Currently Active"])}
-    accentColor="rgb(83 166 251)"
-    buttonText="Selected"
-    buttonFilled={true} />
-
-const UnSelectedPriceCard = (props) =>
-  <PriceCard
-    {...props}
-    subtitle=""
-    buttonFilled={false}
-    buttonText="Change Plan"
-    features={props.features.slice(0, 2)}
-    accentColor="gray"
-    textColor="gray"
-    buttonColor="black"/>
+const selectedProps = (props) => ({
+  ...props,
+  subtitle: "",
+  features: props.features.slice(0,2).concat(["Currently Active"]),
+  accentColor: "rgb(83 166 251)",
+  buttonText: "Selected",
+  buttonFilled: true,
+})
 
 
+const unSelectedProps = (props) => ({
+  ...props,
+  subtitle: "",
+  buttonFilled: false,
+  buttonText: "Change Plan",
+  features: props.features.slice(0, 2) ,
+  accentColor: "gray",
+  textColor: "gray",
+  buttonColor: "black",
+})
 
-// Placeholder stripe integration
-// I'm not sure the best way to handle this.
-// Ultimately, I need people to login to slack first before paying
-// Maybe, I do that and redirect them with a hash that auto pops up the
-// correct popup? Probably actually just want to use elements instead
-// of stripe checkout. But trying to keep this as simple as possible.
-
-// Most likely people will do the free trial. I also need make an actual
-// landing page for people logged in. It will look a bit different than this
-// page and should make it easy for people to upgrade/cancel.
-const useStripe = (tokenFn) => {
-  const [handler, setHandler] = useState(null);
-
-  useEffect(() => {
-    if (window.StripeCheckout) {
-      setHandler(
-        StripeCheckout.configure({
-          // This is my publishable test key
-          key: 'pk_test_j1McZfQ85E6wZaJacUIpcV9F',
-          image: '/static/logo-only-bars.png',
-          locale: 'auto',
-          token: tokenFn
-        })
-      );
-    }
-  }, [process.browser && window.StripeCheckout]);
-
-  return ({ description, amount }) => (e) => {
-    handler.open({
-      name: 'Poll App',
-      description,
-      amount,
-    });
-    e.preventDefault();
-  }
-}
-
-const SwappablePriceCard = (props) =>
-  <Selector
-    items={[
-      <PriceCard {...props} />,
-      <SelectedPriceCard {...props} />,
-      <UnSelectedPriceCard {...props} />,
-    ]} />
-
-const Pricing = () => {
-  const openStripe = useStripe((token) => console.log(token));
+const Pricing = ({ selected, setSelected }) => {
   return (
     <Flex direction="row" justify="center" align="flex-end">
-      <SwappablePriceCard
+      <SelectablePriceCard
+        selected={selected}
+        name="personal"
         price={0}
         features={["Non-Commercial Use", "25 polls a month"]}
         accentColor="rgb(57 104 178)"
         buttonText="Add To Slack"
-        title="Personal" />
-      <SwappablePriceCard
+        title="Personal"
+        onClick={() => { if (selected !== "none") { setSelected("personal") } } }  />
+      <SelectablePriceCard
+        selected={selected}
+        name="basic"
         price={15}
         features={["50 polls a month", "Unlimited Users", "30 day free trial"]}
         buttonFilled={true}
         accentColor="#fb9353"
         subtitle="Most Popular"
         buttonText="Try Now"
-        title="Basic" />
-      <SwappablePriceCard
+        title="Basic"
+        onClick={() => { if (selected !== "none") { setSelected("basic") } } }  />
+      <SelectablePriceCard
+        selected={selected}
+        name="premium"
         price={25}
         features={["100 polls a month", "Unlimited Users"]}
         accentColor="rgb(83 166 251)"
         buttonVariant="contained"
         buttonText="Sign Up Now"
         title="Premium"
-        onClick={openStripe({ description: "Premium: $25 per Month", amount: 2500 })} />
-      <SwappablePriceCard
+        onClick={() => { if (selected !== "none") { setSelected("premium") } } } />
+      <SelectablePriceCard
+        selected={selected}
+        name="enterprise"
         price={50}
         features={["Unlimited polls a month", "Unlimited Users"]}
         accentColor="rgb(63, 140, 251)"
         buttonText="Sign Up Now"
         title="Enterprise"
-        onClick={openStripe({ description: "Enterprise: $50 per Month", amount: 5000 })} />
+        onClick={() => { if (selected !== "none") { setSelected("enterprise") } } }  />
     </Flex>
   )
 }
 
+const LoggedInActions = () =>
+  <>
+    <Text href="#" color="white" size={16}>{team}<span style={{fontSize:12}}>▼</span></Text>
+    <Text href="#" color="white" size={16}>Logout</Text>
+  </>
+
 const Header = ({ team }) => {
-  if (!team) {
-    return <div style={{height: 20}} />
-  }
+
 
   return (
-    <Flex style={{backgroundColor: "rgb(83, 166, 251)", marginBottom: 20}} direction="row" justify="center">
-      <Flex flex={0.45} />
-      <Flex style={{width:160}} direction="row" justify="space-between" alignSelf="flex-end">
-        <Text href="#" color="white" size={16}>{team}<span style={{fontSize:12}}>▼</span></Text>
-        <Text href="#" color="white" size={16}>Logout</Text>
+    <Flex style={{backgroundColor: "rgb(83, 166, 251)", marginBottom: 20}} direction="row" justify="flex-end">
+      <Flex style={{width:130}} direction="row" alignSelf="flex-end">
+        <Text href="https://slack.com/oauth/authorize?scope=identity.basic&client_id=35696317461.504169540400" color="white" size={16}>Login</Text>
       </Flex>
     </Flex>
   )
 }
 
-
-
-const CheckoutForm = injectStripe(() =>
-  <Card style={{width: 253, height: 400, backgroundColor: "#f5f5f7", marginTop: 90, marginBottom:15}} padding={0}>
-    <div style={{height:180, backgroundColor: "#e8e9eb"}}>
+const CheckoutForm = injectStripe(({ price, planName }) =>
+  <Card style={{width: 253, height: 370, backgroundColor: "#f5f5f7", marginTop: 95, marginBottom:35}} padding={0}>
+    <div style={{height:150, backgroundColor: "#e8e9eb"}}>
       <Flex justify="center" align="center" direction="column">
         <div style={{borderRadius: "100%",
                      marginTop:-30,
@@ -372,21 +343,20 @@ const CheckoutForm = injectStripe(() =>
           <img style={{width: 50, height: 50}} src="/static/logo.png" />
         </div>
         <Text style={{fontWeight: "bold"}}>Poll App</Text>
-        <Text secondary style={{margin:0}}>Basic - $15/month</Text>
+        <Text secondary style={{margin:0}}>{planName} - ${price}/month</Text>
       </Flex>
     </div>
     <div style={{padding:20}}>
-      <fieldset>
+      <fieldset style={{paddingBottom: 0}}>
 
         <Flex align="center">
-          {/*<label htmlFor="email">Email</label>*/}
-          <input id="email" type="email" placeholder="janedoe@gmail.com" required="" autocomplete="email" />
+          <input id="email" type="email" placeholder="janedoe@gmail.com" required="" autoComplete="email" />
         </Flex>
       </fieldset>
-      <fieldset>
+      <fieldset style={{padding: 5}}>
         <CardNumberElement />
       </fieldset>
-      <fieldset>
+      <fieldset style={{padding: 5}}>
         <Flex>
         <div style={{width: "50%"}}>
           <CardExpiryElement />
@@ -396,73 +366,98 @@ const CheckoutForm = injectStripe(() =>
         </div>
         </Flex>
       </fieldset>
-      <Button color="rgb(83 166 251)" onClick={() => {}}>Subscribe</Button>
+      <Flex style={{height: 60}} direction="column" justify="flex-end">
+        <Button color="rgb(83 166 251)" onClick={() => {}}>Subscribe</Button>
+      </Flex>
     </div>
   </Card>
 )
 
-const Stripe = () => {
+const DemoImage = () =>
+  <img style={{width: 253, height: 500, padding: "0 10px"}} src="/static/pixel-white.png" />
+
+const Stripe = ({ price, planName }) => {
   if (!process.browser) {
     return null;
   }
   return (
     <StripeProvider apiKey="pk_test_j1McZfQ85E6wZaJacUIpcV9F">
       <Elements>
-        <CheckoutForm />
+        <CheckoutForm price={price} planName={planName} />
       </Elements>
     </StripeProvider>
   )
 }
 
-const Selector = ({ items }) => {
-  const [selected, setSelected] = useState(0);
-  return (
-    <span onClick={(e) => {
-      if (e.metaKey) {
-        setSelected((selected + 1) % items.length)
-      }
-    }}>
-      {items[selected]}
-    </span>
-  )
+if (process.browser) {
+  window.devtools = {}
 }
 
-export default (props) =>
-  <>
-    <Head>
-      <title>Poll App - Slack polls made easy</title>
-      <link rel="icon" type="image/png" href="/static/favicon.png" sizes="196x196" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <script src="https://js.stripe.com/v3/"></script>
-    </Head>
-    <GlobalStyles />
-    <Header />
-    <Container direction="column" justify="center">
-      <Flex direction="row" justify="center">
-        <Flex direction="column" justify="center">
-          <Flex className="next-to" direction="row" align="baseline" justify="center">
-            <img style={{width: 75, height: 75 }} src="/static/logo.png" />
-            <Heading1
-              align="center"
-              text="Poll App" />
-          </Flex>
-          <Flex justify="center">
-            <Text secondary align="center" style={{maxWidth: 600}}>
-              Make and take polls right in Slack. Gather feedback or make decisions without needing to schedule a meeting.
-            </Text>
-          </Flex>
-        </Flex>
+const useDevState = (name, initialState) => {
+  const [value, setValue] = useState(initialState);
+  if (process.browser) {
+    window.devtools[name] = setValue;
+  }
+  return [value, setValue]
+}
 
-        <Flex direction="column" justify="center" align="center">
-          <Selector
-            items={[
-              <img style={{width: 253, height: 500, padding: "0 10px"}} src="/static/pixel-white.png" />,
-              <Stripe />,
-          ]} />
+const useDevTools = () => {
+  useEffect(() => {
+    console.log(`The follow dev tools are available: ${Object.keys(window.devtools).join(", ")}`)
+  }, [])
+}
+
+const priceBySelected = {
+  basic: 15,
+  premium: 25,
+  enterprise: 50,
+  none: "",
+}
+
+const titleCase = (str) => str[0].toUpperCase() + str.substring(1);
+
+export default (props) => {
+  const [selected, setSelected]  = useDevState("setSelected", "none");
+  useDevTools();
+  return (
+    <>
+      <Head>
+        <title>Poll App - Slack polls made easy</title>
+        <link rel="icon" type="image/png" href="/static/favicon.png" sizes="196x196" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <script src="https://js.stripe.com/v3/"></script>
+      </Head>
+      <GlobalStyles />
+      <Header />
+      <Container direction="column" justify="center">
+        <Flex direction="row" justify="center">
+          <Flex direction="column" justify="center">
+            <Flex className="next-to" direction="row" align="baseline" justify="center">
+              <img style={{width: 75, height: 75 }} src="/static/logo.png" />
+              <Heading1
+                align="center"
+                text="Poll App" />
+            </Flex>
+            <Flex justify="center">
+              <Text secondary align="center" style={{maxWidth: 600}}>
+                Make and take polls right in Slack. Gather feedback or make decisions without needing to schedule a meeting.
+              </Text>
+            </Flex>
+          </Flex>
+
+          <Flex direction="column" justify="center" align="center">
+            {selected === "none" || selected === "personal" ?
+              <DemoImage /> :
+              <Stripe
+                planName={titleCase(selected)}
+                price={priceBySelected[selected]} />
+            }
+          </Flex>
         </Flex>
-      </Flex>
-    </Container>
-    <Container justify="center" style={{paddingTop: 30}}>
-      <Pricing />
-    </Container>
-  </>
+      </Container>
+      <Container justify="center" style={{paddingTop: 30}}>
+        <Pricing selected={selected} setSelected={setSelected} />
+      </Container>
+    </>
+  )
+}
