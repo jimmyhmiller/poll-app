@@ -61,18 +61,22 @@ const GlobalStyles = () =>
     // This styles suck, need to figure out what this should look like
 
     fieldset {
-      background-color: white;
+      //background-color: white;
       border: none;
-      border-radius: 4px;
-      margin-bottom: 10px;
-      box-shadow: inset 0 1px 1px 0 hsla(240,1%,49%,.3),0 1px 0 0 hsla(0,0%,100%,.7)
+      // border-radius: 4px;
+      margin-bottom: 5px;
+     // box-shadow: inset 0 1px 1px 0 hsla(240,1%,49%,.3),0 1px 0 0 hsla(0,0%,100%,.7)
     }
 
     input {
-      padding-bottom: 10px;
+      margin: 0;
+      padding: 0;
       width: 100%;
-      background-color: white;
-      -webkit-animation: 1ms void-animation-out;
+      font: sans-serif;
+      font-size: 14px;
+      line-height: 1.2em;
+      background-color: transparent;
+      height: 1.2em;
       outline: none;
       border: none;
     }
@@ -319,11 +323,9 @@ const LoggedInActions = () =>
   </>
 
 const Header = ({ team }) => {
-
-
   return (
     <Flex style={{backgroundColor: "rgb(83, 166, 251)", marginBottom: 20}} direction="row" justify="flex-end">
-      <Flex style={{width:130}} direction="row" alignSelf="flex-end">
+      <Flex style={{paddingRight: 30}} direction="row" alignSelf="flex-end">
         <Text href="https://slack.com/oauth/authorize?scope=identity.basic&client_id=35696317461.504169540400" color="white" size={16}>Login</Text>
       </Flex>
     </Flex>
@@ -331,42 +333,46 @@ const Header = ({ team }) => {
 }
 
 const CheckoutForm = injectStripe(({ price, planName }) =>
-  <Card style={{width: 253, height: 370, backgroundColor: "#f5f5f7", marginTop: 95, marginBottom:35}} padding={0}>
-    <div style={{height:150, backgroundColor: "#e8e9eb"}}>
+  <Card accentColor="rgb(83 166 251)" style={{width: 253, height: 375, backgroundColor: "#fff", marginTop: 85, marginBottom:35}} padding={0}>
+    <div style={{height:150, borderBottom: "3px #e8e9eb solid"}}>
       <Flex justify="center" align="center" direction="column">
         <div style={{borderRadius: "100%",
-                     marginTop:-30,
+                     marginTop: -40,
+                     marginBottom: 10,
                      backgroundColor: "white",
                      padding: 10,
                      border: "3px solid #fff",
-                     boxShadow: "0 0 0 1px rgba(0,0,0,.18),0 2px 2px 0 rgba(0,0,0,.08)"}}>
+                     boxShadow: "0 0 0 2px rgba(0,0,0,.18), 0 2px 2px 5px rgba(0,0,0,.08)"}}>
           <img style={{width: 50, height: 50}} src="/static/logo.png" />
         </div>
         <Text style={{fontWeight: "bold"}}>Poll App</Text>
         <Text secondary style={{margin:0}}>{planName} - ${price}/month</Text>
       </Flex>
     </div>
-    <div style={{padding:20}}>
-      <fieldset style={{paddingBottom: 0}}>
-
+    <div style={{padding:20, paddingTop: 10}}>
+      <fieldset style={{padding: 5}}>
+        <label>Email</label>
         <Flex align="center">
           <input id="email" type="email" placeholder="janedoe@gmail.com" required="" autoComplete="email" />
         </Flex>
       </fieldset>
       <fieldset style={{padding: 5}}>
+        <label>Card Number</label>
         <CardNumberElement />
       </fieldset>
       <fieldset style={{padding: 5}}>
         <Flex>
         <div style={{width: "50%"}}>
+          <label>Exp</label>
           <CardExpiryElement />
         </div>
         <div style={{width: "50%"}}>
+          <label>CVV</label>
           <CardCVCElement />
         </div>
         </Flex>
       </fieldset>
-      <Flex style={{height: 60}} direction="column" justify="flex-end">
+      <Flex style={{height: 40}} direction="column" justify="flex-end">
         <Button color="rgb(83 166 251)" onClick={() => {}}>Subscribe</Button>
       </Flex>
     </div>
