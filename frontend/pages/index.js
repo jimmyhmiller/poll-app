@@ -191,11 +191,44 @@ const Button = ({ children, color, filled, onClick = ()=>{} }) => {
   )
 }
 
+const selectedProps = (props) => ({
+  ...props,
+  subtitle: "",
+  features: props.features.slice(0,2).concat([""]),
+  accentColor: "rgb(83 166 251)",
+  buttonText: "Selected",
+  buttonFilled: true,
+  notable: true,
+})
 
-const SelectablePriceCard = ({name, selected, ...props}) => {
-  if (selected === "none") {
+const unSelectedProps = (props) => ({
+  ...props,
+  subtitle: "",
+  buttonFilled: false,
+  buttonText: "Change Plan",
+  features: props.features.slice(0, 2) ,
+  accentColor: "gray",
+  textColor: "gray",
+  buttonColor: "black",
+})
+
+const subscribedProps = (props) => ({
+  ...props,
+  subtitle: "",
+  features: props.features.slice(0,2),
+  buttonText: "Active",
+  buttonFilled: true,
+})
+
+
+const SelectablePriceCard = ({name, selected, subscribed, ...props}) => {
+  if (!subscribed && !selected) {
     return <PriceCard {...props} />
-  } else if (selected === name) {
+  } else if (subscribed === name && (selected === name || !selected)) {
+    return <PriceCard {...subscribedProps(selectedProps(props))} />
+  } else if (subscribed === name) {
+    return <PriceCard {...subscribedProps(unSelectedProps(props))} />
+  }else if (selected === name) {
     return <PriceCard {...selectedProps(props)} />
   } else {
     return <PriceCard {...unSelectedProps(props)} />
@@ -213,6 +246,7 @@ const PriceCard = ({
   price,
   buttonFilled = false,
   onClick,
+  notable,
 }) => (
   <Flex>
     <Card accentColor={accentColor}>
@@ -237,6 +271,7 @@ const PriceCard = ({
               {feature}
             </Text>
           )}
+          {notable ? <br /> : null}
         </div>
       </div>
       <div>
@@ -248,42 +283,22 @@ const PriceCard = ({
   </Flex>
 );
 
-
-const selectedProps = (props) => ({
-  ...props,
-  subtitle: "",
-  features: props.features.slice(0,2).concat(["Currently Active"]),
-  accentColor: "rgb(83 166 251)",
-  buttonText: "Selected",
-  buttonFilled: true,
-})
-
-
-const unSelectedProps = (props) => ({
-  ...props,
-  subtitle: "",
-  buttonFilled: false,
-  buttonText: "Change Plan",
-  features: props.features.slice(0, 2) ,
-  accentColor: "gray",
-  textColor: "gray",
-  buttonColor: "black",
-})
-
-const Pricing = ({ selected, setSelected }) => {
+const Pricing = ({ selected, setSelected, subscribed }) => {
   return (
     <Flex direction="row" justify="center" align="flex-end">
       <SelectablePriceCard
         selected={selected}
+        subscribed={subscribed}
         name="personal"
         price={0}
         features={["Non-Commercial Use", "25 polls a month"]}
         accentColor="rgb(57 104 178)"
         buttonText="Add To Slack"
         title="Personal"
-        onClick={() => { if (selected !== "none") { setSelected("personal") } } }  />
+        onClick={() => { if (selected || subscribed) { setSelected("personal") } } }  />
       <SelectablePriceCard
         selected={selected}
+        subscribed={subscribed}
         name="basic"
         price={15}
         features={["50 polls a month", "Unlimited Users", "30 day free trial"]}
@@ -292,9 +307,10 @@ const Pricing = ({ selected, setSelected }) => {
         subtitle="Most Popular"
         buttonText="Try Now"
         title="Basic"
-        onClick={() => { if (selected !== "none") { setSelected("basic") } } }  />
+        onClick={() => { if (selected || subscribed) { setSelected("basic") } } }  />
       <SelectablePriceCard
         selected={selected}
+        subscribed={subscribed}
         name="premium"
         price={25}
         features={["100 polls a month", "Unlimited Users"]}
@@ -302,16 +318,17 @@ const Pricing = ({ selected, setSelected }) => {
         buttonVariant="contained"
         buttonText="Sign Up Now"
         title="Premium"
-        onClick={() => { if (selected !== "none") { setSelected("premium") } } } />
+        onClick={() => { if (selected || subscribed) { setSelected("premium") } } } />
       <SelectablePriceCard
         selected={selected}
+        subscribed={subscribed}
         name="enterprise"
         price={50}
         features={["Unlimited polls a month", "Unlimited Users"]}
         accentColor="rgb(63, 140, 251)"
         buttonText="Sign Up Now"
         title="Enterprise"
-        onClick={() => { if (selected !== "none") { setSelected("enterprise") } } }  />
+        onClick={() => { if (selected || subscribed) { setSelected("enterprise") } } }  />
     </Flex>
   )
 }
@@ -332,23 +349,28 @@ const Header = ({ team }) => {
   )
 }
 
+
+const PlanDescription = ({ price, planName, children }) =>
+  <div style={{height:130}}>
+    <Flex justify="center" align="center" direction="column">
+      <div style={{borderRadius: "100%",
+                   marginTop: -40,
+                   marginBottom: 0,
+                   backgroundColor: "white",
+                   padding: 10,
+                   border: "3px solid #fff",
+                   boxShadow: "0 0 0 2px rgba(0,0,0,.18), 0 2px 2px 5px rgba(0,0,0,.08)"}}>
+        <img style={{width: 50, height: 50}} src="/static/logo.png" />
+      </div>
+      <Text style={{fontWeight: "bold"}}>Poll App</Text>
+      <Text secondary style={{margin:0}}>{planName} - ${price}/month</Text>
+      {children}
+    </Flex>
+  </div>
+
 const CheckoutForm = injectStripe(({ price, planName }) =>
   <Card accentColor="rgb(83 166 251)" style={{width: 253, height: 375, backgroundColor: "#fff", marginTop: 85, marginBottom:35}} padding={0}>
-    <div style={{height:150, borderBottom: "3px #e8e9eb solid"}}>
-      <Flex justify="center" align="center" direction="column">
-        <div style={{borderRadius: "100%",
-                     marginTop: -40,
-                     marginBottom: 10,
-                     backgroundColor: "white",
-                     padding: 10,
-                     border: "3px solid #fff",
-                     boxShadow: "0 0 0 2px rgba(0,0,0,.18), 0 2px 2px 5px rgba(0,0,0,.08)"}}>
-          <img style={{width: 50, height: 50}} src="/static/logo.png" />
-        </div>
-        <Text style={{fontWeight: "bold"}}>Poll App</Text>
-        <Text secondary style={{margin:0}}>{planName} - ${price}/month</Text>
-      </Flex>
-    </div>
+    <PlanDescription price={price} planName={planName} />
     <div style={{padding:20, paddingTop: 10}}>
       <fieldset style={{padding: 5}}>
         <label>Email</label>
@@ -367,12 +389,12 @@ const CheckoutForm = injectStripe(({ price, planName }) =>
           <CardExpiryElement />
         </div>
         <div style={{width: "50%"}}>
-          <label>CVV</label>
+          <label>CVC</label>
           <CardCVCElement />
         </div>
         </Flex>
       </fieldset>
-      <Flex style={{height: 40}} direction="column" justify="flex-end">
+      <Flex style={{height: 60}} direction="column" justify="flex-end">
         <Button color="rgb(83 166 251)" onClick={() => {}}>Subscribe</Button>
       </Flex>
     </div>
@@ -409,21 +431,79 @@ const useDevState = (name, initialState) => {
 
 const useDevTools = () => {
   useEffect(() => {
-    console.log(`The follow dev tools are available: ${Object.keys(window.devtools).join(", ")}`)
+    console.log(`The following dev tools are available: ${Object.keys(window.devtools).join(", ")}`)
   }, [])
 }
 
 const priceBySelected = {
+  personal: 0,
   basic: 15,
   premium: 25,
   enterprise: 50,
-  none: "",
 }
 
-const titleCase = (str) => str[0].toUpperCase() + str.substring(1);
+const SubscriptionButton = ({ subscribed, selected}) => {
+  if (subscribed === selected) {
+    return (
+      <Button color="rgb(251, 83, 83)" onClick={() => {}}>
+       Cancel
+      </Button>
+    )
+  } else {
+    return (
+      <Button color="rgb(83, 166, 251)" onClick={() => {}}>
+       Change Subscription
+      </Button>
+    )
+  }
+}
+
+const ActiveSubscription = ({ price, planName, subscribed, selected }) => {
+  const style = {
+    width: 253,
+    height: 230,
+    backgroundColor: "#fff",
+    marginTop: 150,
+    marginBottom: 120
+  };
+  return (
+    <Card style={style} accentColor="rgb(83 166 251)" padding={0}>
+      <div style={{padding: 20}}>
+
+        <PlanDescription price={price} planName={planName}>
+          {price > 0
+            ? <Text size={12} style={{padding:0, margin:0}} secondary>Next Charge April 5th</Text>
+            : <Text size={12} style={{padding:0, margin:0}} secondary>Non-Commercial Use</Text>}
+        </PlanDescription>
+        <Flex style={{height: 55}} direction="column" justify="flex-end">
+          <SubscriptionButton subscribed={subscribed} selected={selected} />
+        </Flex>
+      </div>
+    </Card>
+  )
+}
+
+const SecondaryPanel = ({ selected, subscribed, ...rest }) => {
+  if (!subscribed && (!selected || selected === "personal")) {
+    return <DemoImage {...rest} />
+  } else if (subscribed) {
+    return (
+      <ActiveSubscription
+        subscribed={subscribed}
+        selected={selected}
+        {...rest} />
+    )
+  } else {
+    return <Stripe {...rest} />
+  }
+}
+
+const titleCase = (str) => str && str[0].toUpperCase() + str.substring(1);
 
 export default (props) => {
-  const [selected, setSelected]  = useDevState("setSelected", "none");
+  const [subscribed , setSubscribed] = useDevState("setSubscribed", null);
+  console.log(subscribed)
+  const [selected, setSelected]  = useDevState("setSelected", null);
   useDevTools();
   return (
     <>
@@ -452,17 +532,16 @@ export default (props) => {
           </Flex>
 
           <Flex direction="column" justify="center" align="center">
-            {selected === "none" || selected === "personal" ?
-              <DemoImage /> :
-              <Stripe
-                planName={titleCase(selected)}
-                price={priceBySelected[selected]} />
-            }
+            <SecondaryPanel
+              selected={selected}
+              subscribed={subscribed}
+              planName={titleCase(selected)}
+              price={priceBySelected[selected]} />
           </Flex>
         </Flex>
       </Container>
       <Container justify="center" style={{paddingTop: 30}}>
-        <Pricing selected={selected} setSelected={setSelected} />
+        <Pricing subscribed={subscribed} selected={selected} setSelected={setSelected} />
       </Container>
     </>
   )
