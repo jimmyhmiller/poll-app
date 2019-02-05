@@ -502,7 +502,6 @@ const titleCase = (str) => str && str[0].toUpperCase() + str.substring(1);
 
 export default (props) => {
   const [subscribed , setSubscribed] = useDevState("setSubscribed", null);
-  console.log(subscribed)
   const [selected, setSelected]  = useDevState("setSelected", null);
   useDevTools();
   return (
@@ -535,8 +534,8 @@ export default (props) => {
             <SecondaryPanel
               selected={selected}
               subscribed={subscribed}
-              planName={titleCase(selected)}
-              price={priceBySelected[selected]} />
+              planName={titleCase(subscribed || selected)}
+              price={priceBySelected[subscribed || selected]} />
           </Flex>
         </Flex>
       </Container>
