@@ -127,6 +127,14 @@ const createIfNotExists = (className, ref, value) =>
     q.Select("ref", q.Create(q.Class(className), value)),
     q.Select("ref", q.Get(ref)))
 
+ const upsert = (className, ref, value) =>
+  q.If(q.Not(q.Exists(ref)),
+    q.Select("ref", q.Create(q.Class(className), value)),
+    q.Do(
+      q.Update(ref, value),
+      q.Select("ref", q.Get(ref))))
+
+
 const matchIndex = (index, value) =>
   q.Match(q.Index(index), value)
 
@@ -215,11 +223,25 @@ const createTeamIfNotExists = (team_id) => {
   return createIfNotExists("teams", teamRef, { data: { team_id }})
 }
 
+const upsertUserAccessToken = ({ team_id, user_id, slack_access_token, access_token }) => {
+  const team = getRefByIndex("teams-by-team-id", team_id);
+  const userRef = getRefByIndex("users-by-user-id", user_id);
+  return q.Do(
+    createIfNotExists("teams", team, { data: { team_id }}),
+    upsert("users", userRef, { data: { user_id, slack_access_token, access_token, team }})
+  )
+}
+const getSlackAccessToken = ({ access_token }) => {
+  return q.Select(
+    ["data", "slack_access_token"],
+    q.Get(matchIndex("users-slack-access-token-by-access-token", access_token))
+  );
+};
 const buildPoll = ({question, options, body, anonymous}) => {
   return {
     data: {
       callback_id: uuid(),
-      team: matchIndex("teams-by-team-id", body.team_id),
+      team: getRefByIndex("teams-by-team-id", body.team_id),
       anonymous,
       question,
       options,
@@ -241,4 +263,6 @@ module.exports = {
   setExpirationDate,
   addDays,
   today,
+  upsertUserAccessToken,
+  getSlackAccessToken,
 }

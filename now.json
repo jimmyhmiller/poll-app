@@ -7,6 +7,7 @@
     { "src": "api/actions.js", "use": "@now/node" },
     { "src": "api/oauth.js", "use": "@now/node" },
     { "src": "api/subscriptions.js", "use": "@now/node" },
+    { "src": "api/user.js", "use": "@now/node" },
     { "src": "frontend/next.config.js", "use": "@now/next"},
     { "src": "frontend/static/*", "use": "@now/static" }
   ],
@@ -32,6 +33,10 @@
     {
       "src": "^/subscriptions",
       "dest": "/api/subscriptions.js"
+    },
+    {
+      "src": "^/user",
+      "dest": "/api/user.js"
     },
     {
       "src": "^/",

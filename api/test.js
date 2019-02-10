@@ -11,3 +11,14 @@ const poll = require("./poll")
 console.log = (...args) => {
   console.dir(args, {depth: null})
 }
+
+const myFunc = async () => {
+  try {
+    
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+
+myFunc()

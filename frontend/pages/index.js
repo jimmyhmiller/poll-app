@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import Head from 'next/head'
 import tinycolor from "tinycolor2"
+import cookie from "cookie";
 import {
   CardElement,
   injectStripe,
@@ -11,6 +12,7 @@ import {
   CardExpiryElement,
   CardCVCElement,
 } from "react-stripe-elements";
+import fetch from 'isomorphic-unfetch'
 
 const GlobalStyles = () =>
   <style jsx global>{`
@@ -343,7 +345,7 @@ const Header = ({ team }) => {
   return (
     <Flex style={{backgroundColor: "rgb(83, 166, 251)", marginBottom: 20}} direction="row" justify="flex-end">
       <Flex style={{paddingRight: 30}} direction="row" alignSelf="flex-end">
-        <Text href="https://slack.com/oauth/authorize?scope=identity.basic&client_id=35696317461.504169540400" color="white" size={16}>Login</Text>
+        <Text href="https://slack.com/oauth/authorize?scope=identity.basic,identity.team&client_id=35696317461.504169540400" color="white" size={16}>Login</Text>
       </Flex>
     </Flex>
   )
@@ -500,7 +502,8 @@ const SecondaryPanel = ({ selected, subscribed, ...rest }) => {
 
 const titleCase = (str) => str && str[0].toUpperCase() + str.substring(1);
 
-export default (props) => {
+const Main = ({ user }) => {
+  console.log(user)
   const [subscribed , setSubscribed] = useDevState("setSubscribed", null);
   const [selected, setSelected]  = useDevState("setSelected", null);
   useDevTools();
@@ -545,3 +548,17 @@ export default (props) => {
     </>
   )
 }
+
+Main.getInitialProps = async ({ req }) => {
+
+  const res = await fetch(`https://${req.headers.host}/user`, {
+    credentials: "include", // polyfill only supports include for cookies
+    headers: {
+      cookie: req.headers.cookie // Stupid hack around server side rendering stuff
+    }
+  });
+  const user = await res.json();
+  return { user };
+};
+
+export default Main
