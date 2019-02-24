@@ -536,7 +536,6 @@ const titleCase = (str) => str && str[0].toUpperCase() + str.substring(1);
 
 
 const Main = ({ user }) => {
-  console.log(user)
   const [subscribed , setSubscribed] = useDevState("setSubscribed", user.subscription && user.subscription.plan.id);
   const [selected, setSelected]  = useDevState("setSelected", null);
   useDevTools();
