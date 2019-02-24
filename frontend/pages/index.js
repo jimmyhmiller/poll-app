@@ -13,6 +13,7 @@ import {
   CardCVCElement,
 } from "react-stripe-elements";
 import fetch from 'isomorphic-unfetch'
+import dateformat  from 'dateformat'
 
 const GlobalStyles = () =>
   <style jsx global>{`
@@ -291,17 +292,17 @@ const Pricing = ({ selected, setSelected, subscribed }) => {
       <SelectablePriceCard
         selected={selected}
         subscribed={subscribed}
-        name="personal"
+        name="poll-app-personal"
         price={0}
         features={["Non-Commercial Use", "25 polls a month"]}
         accentColor="rgb(57 104 178)"
         buttonText="Add To Slack"
         title="Personal"
-        onClick={() => { if (selected || subscribed) { setSelected("personal") } } }  />
+        onClick={() => { if (selected || subscribed) { setSelected("poll-app-personal") } } }  />
       <SelectablePriceCard
         selected={selected}
         subscribed={subscribed}
-        name="basic"
+        name="poll-app-basic"
         price={15}
         features={["50 polls a month", "Unlimited Users", "30 day free trial"]}
         buttonFilled={true}
@@ -309,28 +310,28 @@ const Pricing = ({ selected, setSelected, subscribed }) => {
         subtitle="Most Popular"
         buttonText="Try Now"
         title="Basic"
-        onClick={() => { if (selected || subscribed) { setSelected("basic") } } }  />
+        onClick={() => { if (selected || subscribed) { setSelected("poll-app-basic") } } }  />
       <SelectablePriceCard
         selected={selected}
         subscribed={subscribed}
-        name="premium"
+        name="poll-app-premium"
         price={25}
         features={["100 polls a month", "Unlimited Users"]}
         accentColor="rgb(83 166 251)"
         buttonVariant="contained"
         buttonText="Sign Up Now"
         title="Premium"
-        onClick={() => { if (selected || subscribed) { setSelected("premium") } } } />
+        onClick={() => { if (selected || subscribed) { setSelected("poll-app-premium") } } } />
       <SelectablePriceCard
         selected={selected}
         subscribed={subscribed}
-        name="enterprise"
+        name="poll-app-enterprise"
         price={50}
         features={["Unlimited polls a month", "Unlimited Users"]}
         accentColor="rgb(63, 140, 251)"
         buttonText="Sign Up Now"
         title="Enterprise"
-        onClick={() => { if (selected || subscribed) { setSelected("enterprise") } } }  />
+        onClick={() => { if (selected || subscribed) { setSelected("poll-app-enterprise") } } }  />
     </Flex>
   )
 }
@@ -342,6 +343,21 @@ const LoggedInActions = () =>
   </>
 
 const Header = ({ team }) => {
+
+  if (team) {
+    return (
+      <Flex style={{backgroundColor: "rgb(83, 166, 251)", marginBottom: 20}} direction="row" justify="flex-end">
+        <Flex style={{paddingRight: 30, minWidth: 200}} direction="row" alignSelf="flex-end" justify="space-around" align="center">
+          <Flex style={{paddingRight:20}} align="center">
+            <img src={team.image_34} style={{height: 34, paddingRight:5}} />
+            <Text color="white" size={16}>{team.name}</Text>
+          </Flex>
+          <Text href="#" color="white" size={16}>Logout</Text>
+        </Flex>
+      </Flex>
+    )
+  }
+
   return (
     <Flex style={{backgroundColor: "rgb(83, 166, 251)", marginBottom: 20}} direction="row" justify="flex-end">
       <Flex style={{paddingRight: 30}} direction="row" alignSelf="flex-end">
@@ -438,14 +454,21 @@ const useDevTools = () => {
 }
 
 const priceBySelected = {
-  personal: 0,
-  basic: 15,
-  premium: 25,
-  enterprise: 50,
+  "poll-app-personal": 0,
+  "poll-app-basic": 15,
+  "poll-app-premium": 25,
+  "poll-app-enterprise": 50,
+}
+
+const nameByPlan = {
+  "poll-app-personal": "Personal",
+  "poll-app-basic": "Basic",
+  "poll-app-premium": "Premium",
+  "poll-app-enterprise": "Enterprise",
 }
 
 const SubscriptionButton = ({ subscribed, selected}) => {
-  if (subscribed === selected) {
+  if (subscribed === selected || subscribed && !selected) {
     return (
       <Button color="rgb(251, 83, 83)" onClick={() => {}}>
        Cancel
@@ -460,7 +483,7 @@ const SubscriptionButton = ({ subscribed, selected}) => {
   }
 }
 
-const ActiveSubscription = ({ price, planName, subscribed, selected }) => {
+const ActiveSubscription = ({ subscribed, selected, subscription }) => {
   const style = {
     width: 253,
     height: 230,
@@ -468,13 +491,20 @@ const ActiveSubscription = ({ price, planName, subscribed, selected }) => {
     marginTop: 150,
     marginBottom: 120
   };
+
+  const currentShown = selected || subscribed;
+  const planName = nameByPlan[currentShown];
+  const price = priceBySelected[currentShown]
+
+  const nextChargeDate = dateformat(new Date(subscription.current_period_end * 1000), "mmmm dS")
+
   return (
     <Card style={style} accentColor="rgb(83 166 251)" padding={0}>
       <div style={{padding: 20}}>
 
         <PlanDescription price={price} planName={planName}>
           {price > 0
-            ? <Text size={12} style={{padding:0, margin:0}} secondary>Next Charge April 5th</Text>
+            ? <Text size={12} style={{padding:0, margin:0}} secondary>Next Charge {nextChargeDate} </Text>
             : <Text size={12} style={{padding:0, margin:0}} secondary>Non-Commercial Use</Text>}
         </PlanDescription>
         <Flex style={{height: 55}} direction="column" justify="flex-end">
@@ -485,12 +515,13 @@ const ActiveSubscription = ({ price, planName, subscribed, selected }) => {
   )
 }
 
-const SecondaryPanel = ({ selected, subscribed, ...rest }) => {
+const SecondaryPanel = ({ selected, subscribed, subscription, ...rest }) => {
   if (!subscribed && (!selected || selected === "personal")) {
     return <DemoImage {...rest} />
   } else if (subscribed) {
     return (
       <ActiveSubscription
+        subscription={subscription}
         subscribed={subscribed}
         selected={selected}
         {...rest} />
@@ -502,9 +533,11 @@ const SecondaryPanel = ({ selected, subscribed, ...rest }) => {
 
 const titleCase = (str) => str && str[0].toUpperCase() + str.substring(1);
 
+
+
 const Main = ({ user }) => {
   console.log(user)
-  const [subscribed , setSubscribed] = useDevState("setSubscribed", null);
+  const [subscribed , setSubscribed] = useDevState("setSubscribed", user.subscription && user.subscription.plan.id);
   const [selected, setSelected]  = useDevState("setSelected", null);
   useDevTools();
   return (
@@ -516,7 +549,7 @@ const Main = ({ user }) => {
         <script src="https://js.stripe.com/v3/"></script>
       </Head>
       <GlobalStyles />
-      <Header />
+      <Header team={user.slack && user.slack.team} />
       <Container direction="column" justify="center">
         <Flex direction="row" justify="center">
           <Flex direction="column" justify="center">
@@ -535,9 +568,10 @@ const Main = ({ user }) => {
 
           <Flex direction="column" justify="center" align="center">
             <SecondaryPanel
+              subscription={user.subscription}
               selected={selected}
               subscribed={subscribed}
-              planName={titleCase(subscribed || selected)}
+              planName={nameByPlan[subscribed || selected]}
               price={priceBySelected[subscribed || selected]} />
           </Flex>
         </Flex>
@@ -551,7 +585,8 @@ const Main = ({ user }) => {
 
 Main.getInitialProps = async ({ req }) => {
 
-  const res = await fetch(`https://${req.headers.host}/user`, {
+  const host = req.headers.host.startsWith("localhost") ? "poll-app.now.sh" : req.headers.host
+  const res = await fetch(`https://${host}/user`, {
     credentials: "include", // polyfill only supports include for cookies
     headers: {
       cookie: req.headers.cookie // Stupid hack around server side rendering stuff

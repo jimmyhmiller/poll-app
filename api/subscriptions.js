@@ -1,5 +1,6 @@
-require('dotenv').config();
 const { send, json } = require("micro");
+
+require('dotenv').config();
 const stripe = require("stripe")(process.env.STRIPE_SECRET);
 
 

@@ -223,20 +223,25 @@ const createTeamIfNotExists = (team_id) => {
   return createIfNotExists("teams", teamRef, { data: { team_id }})
 }
 
+
+const userInfoByAccessToken = ({ access_token }) => {
+  return q.Get(matchIndex("user-by-access-token", access_token))
+}
+
+const teamInfoByAccessToken = ({ access_token }) => {
+   return q.Get(q.Select(["data", "team"], userInfoByAccessToken({ access_token })))
+}
+
 const upsertUserAccessToken = ({ team_id, user_id, slack_access_token, access_token }) => {
   const team = getRefByIndex("teams-by-team-id", team_id);
   const userRef = getRefByIndex("users-by-user-id", user_id);
   return q.Do(
     createIfNotExists("teams", team, { data: { team_id }}),
-    upsert("users", userRef, { data: { user_id, slack_access_token, access_token, team }})
+    upsert("users", userRef, { data: { user_id, slack_access_token, access_token, team }}),
+    q.Get(team)
   )
 }
-const getSlackAccessToken = ({ access_token }) => {
-  return q.Select(
-    ["data", "slack_access_token"],
-    q.Get(matchIndex("users-slack-access-token-by-access-token", access_token))
-  );
-};
+
 const buildPoll = ({question, options, body, anonymous}) => {
   return {
     data: {
@@ -264,5 +269,6 @@ module.exports = {
   addDays,
   today,
   upsertUserAccessToken,
-  getSlackAccessToken,
+  userInfoByAccessToken,
+  teamInfoByAccessToken,
 }

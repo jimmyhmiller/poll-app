@@ -1,8 +1,10 @@
 const axios = require("axios");
 const { send } = require("micro");
 const cookie = require("cookie");
+
 require("dotenv").config();
-const { getSlackAccessToken } = require("./util");
+const { userInfoByAccessToken, teamInfoByAccessToken } = require("./util");
+const stripe = require("stripe")(process.env.STRIPE_SECRET);
 
 
 const faunadb = require("faunadb");
@@ -14,6 +16,28 @@ const getAccessToken = (req) =>
   (cookie.parse(req.headers.cookie || '').access_token) ||
   req.headers.authorization
 
+
+const fetchStripeSubscription = async ({ stripe_id }) => {
+  if (stripe_id) {
+    console.log("stripe_id found")
+    const customer = await stripe.customers.retrieve(stripe_id)
+    return customer.subscriptions.data[0] || {}
+  } else {
+    console.log("stripe_id not found")
+    return {}
+  }
+}
+
+const fetchSlackInfo = async ({ slack_access_token }) => {
+  const result = await axios.get("https://slack.com/api/users.identity", {
+      headers: {
+        authorization: `Bearer ${slack_access_token}`
+      }
+    });
+
+  return result.data
+}
+
 module.exports = async (req, res) => {
   try {
     const access_token = getAccessToken(req);
@@ -23,18 +47,23 @@ module.exports = async (req, res) => {
       return;
     }
 
-    const slack_access_token = await client.query(getSlackAccessToken({ access_token }));
-    const response = await axios.get("https://slack.com/api/users.identity", {
-      headers: {
-        authorization: `Bearer ${slack_access_token}`
-      }
-    });
+    const [{ data: { slack_access_token }}, { data: { stripe_id }}] = await Promise.all([
+      client.query(userInfoByAccessToken({ access_token })),
+      client.query(teamInfoByAccessToken({ access_token })),
+    ])
+
+    const [slack, subscription] = await Promise.all([
+      fetchSlackInfo({ slack_access_token }),
+      fetchStripeSubscription({ stripe_id })
+    ]);
+
     send(res, 200, {
-      ...response.data,
-      loggedIn: response.data.ok
+      slack,
+      subscription,
+      loggedIn: slack.ok
     })
   } catch (e) {
     console.error(e);
-    send(res, 500, "Error")
+    send(res, 500, {error: "Unexpected error"})
   }
 };

@@ -40,8 +40,7 @@
     },
     {
       "src": "^/",
-      "dest": "/frontend/",
-      "headers": {"cache-control": "s-maxage=31536000"}
+      "dest": "/frontend/"
     },
     {
       "src": "^/static/(.*)",
