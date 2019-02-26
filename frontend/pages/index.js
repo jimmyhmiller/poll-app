@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import PropTypes from "prop-types";
 import Head from 'next/head'
 import tinycolor from "tinycolor2"
@@ -197,7 +197,6 @@ const Button = ({ children, color, filled, onClick = ()=>{} }) => {
 const selectedProps = (props) => ({
   ...props,
   subtitle: "",
-  features: props.features.slice(0,2).concat([""]),
   accentColor: "rgb(83 166 251)",
   buttonText: "Selected",
   buttonFilled: true,
@@ -209,7 +208,7 @@ const unSelectedProps = (props) => ({
   subtitle: "",
   buttonFilled: false,
   buttonText: "Change Plan",
-  features: props.features.slice(0, 2) ,
+  features: props.features.slice(0, 2),
   accentColor: "gray",
   textColor: "gray",
   buttonColor: "black",
@@ -274,7 +273,7 @@ const PriceCard = ({
               {feature}
             </Text>
           )}
-          {notable ? <br /> : null}
+          {features.length === 2 && notable ? <br /> : null}
         </div>
       </div>
       <div>
@@ -286,7 +285,7 @@ const PriceCard = ({
   </Flex>
 );
 
-const Pricing = ({ selected, setSelected, subscribed }) => {
+const Pricing = ({ selected, setSelected, subscribed, loggedIn }) => {
   return (
     <Flex direction="row" justify="center" align="flex-end">
       <SelectablePriceCard
@@ -298,7 +297,7 @@ const Pricing = ({ selected, setSelected, subscribed }) => {
         accentColor="rgb(57 104 178)"
         buttonText="Add To Slack"
         title="Personal"
-        onClick={() => { if (selected || subscribed) { setSelected("poll-app-personal") } } }  />
+        onClick={() => { if (loggedIn) { setSelected("poll-app-personal") } } }  />
       <SelectablePriceCard
         selected={selected}
         subscribed={subscribed}
@@ -310,7 +309,7 @@ const Pricing = ({ selected, setSelected, subscribed }) => {
         subtitle="Most Popular"
         buttonText="Try Now"
         title="Basic"
-        onClick={() => { if (selected || subscribed) { setSelected("poll-app-basic") } } }  />
+        onClick={() => { if (loggedIn) { setSelected("poll-app-basic") } } }  />
       <SelectablePriceCard
         selected={selected}
         subscribed={subscribed}
@@ -321,7 +320,7 @@ const Pricing = ({ selected, setSelected, subscribed }) => {
         buttonVariant="contained"
         buttonText="Sign Up Now"
         title="Premium"
-        onClick={() => { if (selected || subscribed) { setSelected("poll-app-premium") } } } />
+        onClick={() => { if (loggedIn) { setSelected("poll-app-premium") } } } />
       <SelectablePriceCard
         selected={selected}
         subscribed={subscribed}
@@ -331,7 +330,7 @@ const Pricing = ({ selected, setSelected, subscribed }) => {
         accentColor="rgb(63, 140, 251)"
         buttonText="Sign Up Now"
         title="Enterprise"
-        onClick={() => { if (selected || subscribed) { setSelected("poll-app-enterprise") } } }  />
+        onClick={() => { if (loggedIn) { setSelected("poll-app-enterprise") } } }  />
     </Flex>
   )
 }
@@ -386,50 +385,101 @@ const PlanDescription = ({ price, planName, children }) =>
     </Flex>
   </div>
 
-const CheckoutForm = injectStripe(({ price, planName }) =>
-  <Card accentColor="rgb(83 166 251)" style={{width: 253, height: 375, backgroundColor: "#fff", marginTop: 85, marginBottom:35}} padding={0}>
-    <PlanDescription price={price} planName={planName} />
-    <div style={{padding:20, paddingTop: 10}}>
+const useInput = (initialState) => {
+  const [value, setValue] = useState(initialState);
+  const onChange = (e) => setValue(e.target.value)
+  return {
+    value, 
+    onChange,
+  }
+}
+
+const CheckoutForm = injectStripe(({ price, planName, stripe, plan }) => {
+  const name = useInput("");
+  const email = useInput("");
+
+  const onSubmit = useCallback(async () => {
+    const stripeToken = await stripe.createToken({ name: name.value });
+
+    fetch("/subscriptions", {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Accept": "application/json",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        plan,
+        email: email.value,
+        id: stripeToken.id,
+      })
+
+    })
+
+  }, [name.value, email.value, stripe, plan])
+
+  return (
+    <Card accentColor="rgb(83 166 251)" style={{width: 253, height: 415, backgroundColor: "#fff", marginTop: 45, marginBottom:35}} padding={0}>
+      <PlanDescription price={price} planName={planName} />
+      <div style={{padding:20, paddingTop: 10}}>
       <fieldset style={{padding: 5}}>
-        <label>Email</label>
-        <Flex align="center">
-          <input id="email" type="email" placeholder="janedoe@gmail.com" required="" autoComplete="email" />
+          <label>Email</label>
+          <Flex align="center">
+            <input
+              {...email}
+              id="email"
+              type="email"
+              placeholder="janedoe@example.com"
+              required=""
+              autocomplete="email" />
+          </Flex>
+        </fieldset>
+        <fieldset style={{padding: 5}}>
+          <label>Name On Card</label>
+          <Flex align="center">
+            <input
+              {...name}
+              id="name"
+              type="text"
+              placeholder="Jane Doe"
+              required="" />
+          </Flex>
+        </fieldset>
+        <fieldset style={{padding: 5}}>
+          <label>Card Number</label>
+          <CardNumberElement />
+        </fieldset>
+        <fieldset style={{padding: 5}}>
+          <Flex>
+          <div style={{width: "50%"}}>
+            <label>Exp</label>
+            <CardExpiryElement />
+          </div>
+          <div style={{width: "50%"}}>
+            <label>CVC</label>
+            <CardCVCElement />
+          </div>
+          </Flex>
+        </fieldset>
+        <Flex style={{height: 50}} direction="column" justify="flex-end">
+          <Button color="rgb(83 166 251)" onClick={onSubmit}>Subscribe</Button>
         </Flex>
-      </fieldset>
-      <fieldset style={{padding: 5}}>
-        <label>Card Number</label>
-        <CardNumberElement />
-      </fieldset>
-      <fieldset style={{padding: 5}}>
-        <Flex>
-        <div style={{width: "50%"}}>
-          <label>Exp</label>
-          <CardExpiryElement />
-        </div>
-        <div style={{width: "50%"}}>
-          <label>CVC</label>
-          <CardCVCElement />
-        </div>
-        </Flex>
-      </fieldset>
-      <Flex style={{height: 60}} direction="column" justify="flex-end">
-        <Button color="rgb(83 166 251)" onClick={() => {}}>Subscribe</Button>
-      </Flex>
-    </div>
-  </Card>
-)
+      </div>
+    </Card>
+  )
+})
 
 const DemoImage = () =>
   <img style={{width: 253, height: 500, padding: "0 10px"}} src="/static/pixel-white.png" />
 
-const Stripe = ({ price, planName }) => {
+const Stripe = ({ price, planName, plan }) => {
   if (!process.browser) {
     return null;
   }
   return (
     <StripeProvider apiKey="pk_test_j1McZfQ85E6wZaJacUIpcV9F">
       <Elements>
-        <CheckoutForm price={price} planName={planName} />
+        <CheckoutForm price={price} planName={planName} plan={plan} />
       </Elements>
     </StripeProvider>
   )
@@ -474,7 +524,15 @@ const SubscriptionButton = ({ subscribed, selected}) => {
        Cancel
       </Button>
     )
-  } else {
+  } 
+  else if (selected === "poll-app-personal" && !subscribed) {
+    return (
+      <Button color="rgb(83, 166, 251)" onClick={() => {}}>
+       Add To Slack
+      </Button>
+    )
+  }
+  else {
     return (
       <Button color="rgb(83, 166, 251)" onClick={() => {}}>
        Change Subscription
@@ -483,10 +541,13 @@ const SubscriptionButton = ({ subscribed, selected}) => {
   }
 }
 
+
+
+
 const ActiveSubscription = ({ subscribed, selected, subscription }) => {
   const style = {
     width: 253,
-    height: 230,
+    height: 225,
     backgroundColor: "#fff",
     marginTop: 150,
     marginBottom: 120
@@ -496,7 +557,7 @@ const ActiveSubscription = ({ subscribed, selected, subscription }) => {
   const planName = nameByPlan[currentShown];
   const price = priceBySelected[currentShown]
 
-  const nextChargeDate = dateformat(new Date(subscription.current_period_end * 1000), "mmmm dS")
+  const nextChargeDate = subscription.current_period_end && dateformat(new Date(subscription.current_period_end * 1000), "mmmm dS")
 
   return (
     <Card style={style} accentColor="rgb(83 166 251)" padding={0}>
@@ -516,9 +577,9 @@ const ActiveSubscription = ({ subscribed, selected, subscription }) => {
 }
 
 const SecondaryPanel = ({ selected, subscribed, subscription, ...rest }) => {
-  if (!subscribed && (!selected || selected === "personal")) {
+  if (!subscribed && !selected) {
     return <DemoImage {...rest} />
-  } else if (subscribed) {
+  } else if (subscribed || selected === "poll-app-personal") {
     return (
       <ActiveSubscription
         subscription={subscription}
@@ -536,7 +597,7 @@ const titleCase = (str) => str && str[0].toUpperCase() + str.substring(1);
 
 
 const Main = ({ user }) => {
-  const [subscribed , setSubscribed] = useDevState("setSubscribed", user.subscription && user.subscription.plan.id);
+  const [subscribed , setSubscribed] = useDevState("setSubscribed", user.subscription && user.subscription.plan && user.subscription.plan.id);
   const [selected, setSelected]  = useDevState("setSelected", null);
   useDevTools();
   return (
@@ -570,13 +631,18 @@ const Main = ({ user }) => {
               subscription={user.subscription}
               selected={selected}
               subscribed={subscribed}
+              plan={subscribed || selected}
               planName={nameByPlan[subscribed || selected]}
               price={priceBySelected[subscribed || selected]} />
           </Flex>
         </Flex>
       </Container>
       <Container justify="center" style={{paddingTop: 30}}>
-        <Pricing subscribed={subscribed} selected={selected} setSelected={setSelected} />
+        <Pricing 
+          subscribed={subscribed} 
+          selected={selected} 
+          setSelected={setSelected}
+          loggedIn={user.loggedIn} />
       </Container>
     </>
   )
@@ -585,6 +651,7 @@ const Main = ({ user }) => {
 Main.getInitialProps = async ({ req }) => {
 
   const host = req.headers.host.startsWith("localhost") ? "poll-app.now.sh" : req.headers.host
+
   const res = await fetch(`https://${host}/user`, {
     credentials: "include", // polyfill only supports include for cookies
     headers: {
