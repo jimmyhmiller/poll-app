@@ -335,25 +335,22 @@ const Pricing = ({ selected, setSelected, subscribed, loggedIn }) => {
   )
 }
 
-const LoggedInActions = () =>
-  <>
-    <Text href="#" color="white" size={16}>{team}<span style={{fontSize:12}}>▼</span></Text>
-    <Text href="#" color="white" size={16}>Logout</Text>
-  </>
+const LoggedInActions = ({ team }) =>
+  <Flex style={{backgroundColor: "rgb(83, 166, 251)", marginBottom: 20}} direction="row" justify="flex-end">
+    <Flex style={{paddingRight: 30, minWidth: 200}} direction="row" alignSelf="flex-end" justify="space-around" align="center">
+      <Flex style={{paddingRight:20}} align="center">
+        <img src={team.image_34} style={{height: 34, paddingRight:5}} />
+        <Text color="white" size={16}>{team.name}</Text>
+      </Flex>
+      <Text href="/logout" color="white" size={16}>Logout</Text>
+    </Flex>
+  </Flex>
 
 const Header = ({ team }) => {
 
   if (team) {
     return (
-      <Flex style={{backgroundColor: "rgb(83, 166, 251)", marginBottom: 20}} direction="row" justify="flex-end">
-        <Flex style={{paddingRight: 30, minWidth: 200}} direction="row" alignSelf="flex-end" justify="space-around" align="center">
-          <Flex style={{paddingRight:20}} align="center">
-            <img src={team.image_34} style={{height: 34, paddingRight:5}} />
-            <Text color="white" size={16}>{team.name}</Text>
-          </Flex>
-          <Text href="#" color="white" size={16}>Logout</Text>
-        </Flex>
-      </Flex>
+     <LoggedInActions team={team} />
     )
   }
 
