@@ -9,6 +9,8 @@
     { "src": "api/subscriptions.js", "use": "@now/node" },
     { "src": "api/user.js", "use": "@now/node" },
     { "src": "api/logout.js", "use": "@now/node" },
+    { "src": "api/cancel_subscription.js", "use": "@now/node" },
+    { "src": "api/change_subscription.js", "use": "@now/node" },
     { "src": "frontend/next.config.js", "use": "@now/next"},
     { "src": "frontend/static/*", "use": "@now/static" }
   ],
@@ -34,6 +36,14 @@
     {
       "src": "^/subscriptions",
       "dest": "/api/subscriptions.js"
+    },
+    {
+      "src": "^/cancel_subscription",
+      "dest": "/api/cancel_subscription.js"
+    },
+        {
+      "src": "^/change_subscription",
+      "dest": "/api/change_subscription.js"
     },
     {
       "src": "^/user",

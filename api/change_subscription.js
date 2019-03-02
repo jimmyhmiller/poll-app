@@ -16,26 +16,28 @@ const getAccessToken = (req) =>
   req.headers.authorization
 
 
+const fetchStripeSubscription = async ({ stripe_id }) => {
+  const customer = await stripe.customers.retrieve(stripe_id)
+  return customer.subscriptions.data[0] || {}
+}
+
+
 
 module.exports = async (req, res) => {
 
   try {
-    const { id, email, plan } = await json(req);
+    const { plan } = await json(req);
 
     const access_token = getAccessToken(req);
     const { data: { stripe_id } } = await client.query(teamInfoByAccessToken({ access_token }))
 
-    await stripe.customers.update(stripe_id, {
-      email: email,
-      source: id,
+    const subscription = await fetchStripeSubscription({ stripe_id })
+
+    await stripe.subscriptionItems.update(subscription.items.data[0].id, {
+      plan
     })
 
-    await stripe.subscriptions.create({
-      customer: stripe_id,
-      items: [{plan}]
-    })
-
-    send(res, 200, { status: "Created!" });
+    send(res, 200, { status: "Subscription Updated" });
   } catch (e) {
     console.error(e)
     send(res, 500, {message: e.message});

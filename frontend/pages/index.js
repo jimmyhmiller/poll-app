@@ -391,14 +391,14 @@ const useInput = (initialState) => {
   }
 }
 
-const CheckoutForm = injectStripe(({ price, planName, stripe, plan }) => {
+const CheckoutForm = injectStripe(({ price, planName, stripe, plan, setSubscribed }) => {
   const name = useInput("");
   const email = useInput("");
 
   const onSubmit = useCallback(async () => {
     const stripeToken = await stripe.createToken({ name: name.value });
 
-    fetch("/subscriptions", {
+    await fetch("/subscriptions", {
       method: "POST",
       credentials: "include",
       headers: {
@@ -412,6 +412,8 @@ const CheckoutForm = injectStripe(({ price, planName, stripe, plan }) => {
       })
 
     })
+
+    setSubscribed(plan)
 
   }, [name.value, email.value, stripe, plan])
 
@@ -469,14 +471,18 @@ const CheckoutForm = injectStripe(({ price, planName, stripe, plan }) => {
 const DemoImage = () =>
   <img style={{width: 253, height: 500, padding: "0 10px"}} src="/static/pixel-white.png" />
 
-const Stripe = ({ price, planName, plan }) => {
+const Stripe = ({ price, planName, plan, setSubscribed }) => {
   if (!process.browser) {
     return null;
   }
   return (
     <StripeProvider apiKey="pk_test_j1McZfQ85E6wZaJacUIpcV9F">
       <Elements>
-        <CheckoutForm price={price} planName={planName} plan={plan} />
+        <CheckoutForm 
+          price={price} 
+          planName={planName}
+          plan={plan}
+          setSubscribed={setSubscribed} />
       </Elements>
     </StripeProvider>
   )
@@ -514,10 +520,39 @@ const nameByPlan = {
   "poll-app-enterprise": "Enterprise",
 }
 
-const SubscriptionButton = ({ subscribed, selected}) => {
+const SubscriptionButton = ({ subscribed, selected, setSubscribed }) => {
+  const cancelSub = useCallback(async () => {
+    await fetch("/cancel_subscription", {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Accept": "application/json",
+        "Content-Type": "application/json"
+      }
+    })
+    setSubscribed(null)
+
+  }, [])
+
+  const changeSub = useCallback(async () => {
+    await fetch("/change_subscription", {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Accept": "application/json",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        plan: selected
+      })
+    })
+
+    setSubscribed(selected)
+  }, [selected])
+
   if (subscribed === selected || subscribed && !selected) {
     return (
-      <Button color="rgb(251, 83, 83)" onClick={() => {}}>
+      <Button color="rgb(251, 83, 83)" onClick={cancelSub}>
        Cancel
       </Button>
     )
@@ -531,7 +566,7 @@ const SubscriptionButton = ({ subscribed, selected}) => {
   }
   else {
     return (
-      <Button color="rgb(83, 166, 251)" onClick={() => {}}>
+      <Button color="rgb(83, 166, 251)" onClick={changeSub}>
        Change Subscription
       </Button>
     )
@@ -541,7 +576,7 @@ const SubscriptionButton = ({ subscribed, selected}) => {
 
 
 
-const ActiveSubscription = ({ subscribed, selected, subscription }) => {
+const ActiveSubscription = ({ subscribed, selected, subscription, setSubscribed }) => {
   const style = {
     width: 253,
     height: 225,
@@ -566,14 +601,17 @@ const ActiveSubscription = ({ subscribed, selected, subscription }) => {
             : <Text size={12} style={{padding:0, margin:0}} secondary>Non-Commercial Use</Text>}
         </PlanDescription>
         <Flex style={{height: 55}} direction="column" justify="flex-end">
-          <SubscriptionButton subscribed={subscribed} selected={selected} />
+          <SubscriptionButton
+            setSubscribed={setSubscribed}
+            subscribed={subscribed}
+            selected={selected} />
         </Flex>
       </div>
     </Card>
   )
 }
 
-const SecondaryPanel = ({ selected, subscribed, subscription, ...rest }) => {
+const SecondaryPanel = ({ selected, subscribed, subscription, setSubscribed, ...rest }) => {
   if (!subscribed && !selected) {
     return <DemoImage {...rest} />
   } else if (subscribed || selected === "poll-app-personal") {
@@ -582,10 +620,10 @@ const SecondaryPanel = ({ selected, subscribed, subscription, ...rest }) => {
         subscription={subscription}
         subscribed={subscribed}
         selected={selected}
-        {...rest} />
+        setSubscribed={setSubscribed} />
     )
   } else {
-    return <Stripe {...rest} />
+    return <Stripe setSubscribed={setSubscribed} {...rest} />
   }
 }
 
@@ -625,6 +663,7 @@ const Main = ({ user }) => {
 
           <Flex direction="column" justify="center" align="center">
             <SecondaryPanel
+              setSubscribed={setSubscribed}
               subscription={user.subscription}
               selected={selected}
               subscribed={subscribed}
