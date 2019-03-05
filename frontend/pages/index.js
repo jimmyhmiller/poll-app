@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useReducer } from "react";
 import PropTypes from "prop-types";
 import Head from 'next/head'
 import tinycolor from "tinycolor2"
@@ -163,11 +163,16 @@ const Card = ({ children, accentColor, style={}, padding=20 }) =>
     </Flex>
   </div>
 
-const Button = ({ children, color, filled, onClick = ()=>{} }) => {
+const Button = ({ children, color, filled, text, onClick = ()=>{} }) => {
   const backgroundColor = filled ? color : "white";
-  const hoverColor = filled ?
-                    tinycolor(backgroundColor).darken().toString()
-                    : tinycolor(color).setAlpha(0.2).toString()
+  const hoverColor = filled
+    ? tinycolor(backgroundColor)
+        .darken()
+        .toString()
+    : tinycolor(color)
+        .setAlpha(0.2)
+        .toString();
+
   return (
     <div>
       <button
@@ -180,7 +185,7 @@ const Button = ({ children, color, filled, onClick = ()=>{} }) => {
           height: 30,
         }}
       >
-        {children}
+        {text}
       </button>
       <style jsx>{`
         button {
@@ -277,9 +282,11 @@ const PriceCard = ({
         </div>
       </div>
       <div>
-        <Button onClick={onClick} color={buttonColor || accentColor} filled={buttonFilled}>
-          {buttonText}
-        </Button>
+        <Button
+          onClick={onClick}
+          color={buttonColor || accentColor}
+          filled={buttonFilled}
+          text={buttonText} />
       </div>
     </Card>
   </Flex>
@@ -382,11 +389,68 @@ const PlanDescription = ({ price, planName, children }) =>
     </Flex>
   </div>
 
+const submitReducer = (state, action) => {
+  switch (action.type) {
+    case "SUBMIT": {
+      return { status: "SUBMITTING" }
+    }
+    case "SUCCESS": {
+      return {
+        status: "SUBMITTED",
+        payload: action.payload,
+      }
+    }
+    case "ERROR": {
+      return {
+        status: "SUBMITTED",
+        error: action.error,
+      }
+    }
+    default: {
+      throw new Error();
+    }
+  }
+}
+
+const useSubmit = (f, deps=[]) => {
+  const submitf = useCallback(f, deps);
+  const [state, dispatch] = useReducer(submitReducer, {status: undefined});
+  const onSubmit = async () => {
+    dispatch({ type: "SUBMIT" });
+    try {
+      const payload = await submitf();
+      dispatch({
+        type: "SUCCESS",
+        payload,
+      })
+    } catch (error) {
+      dispatch({
+        type: "ERROR",
+        error,
+      })
+    }
+  }
+  return [state, onSubmit]
+}
+
+const useSubmitButton = (initialText, f, deps=[]) => {
+  const [state, onSubmit] = useSubmit(f, deps);
+
+  const isSubmitting = state.status === "SUBMITTING"
+  const text = isSubmitting ? "submitting" : initialText;
+  return {
+    onSubmit,
+    onClick: onSubmit,
+    disabled: isSubmitting,
+    text,
+  }
+}
+
 const useInput = (initialState) => {
   const [value, setValue] = useState(initialState);
   const onChange = (e) => setValue(e.target.value)
   return {
-    value, 
+    value,
     onChange,
   }
 }
@@ -395,7 +459,7 @@ const CheckoutForm = injectStripe(({ price, planName, stripe, plan, setSubscribe
   const name = useInput("");
   const email = useInput("");
 
-  const onSubmit = useCallback(async () => {
+  const submitProps = useSubmitButton("Subscribe", async () => {
     const stripeToken = await stripe.createToken({ name: name.value });
 
     await fetch("/subscriptions", {
@@ -461,7 +525,10 @@ const CheckoutForm = injectStripe(({ price, planName, stripe, plan, setSubscribe
           </Flex>
         </fieldset>
         <Flex style={{height: 50}} direction="column" justify="flex-end">
-          <Button color="rgb(83 166 251)" onClick={onSubmit}>Subscribe</Button>
+          <Button
+            color="rgb(83 166 251)"
+
+            {...submitProps} />
         </Flex>
       </div>
     </Card>
@@ -478,8 +545,8 @@ const Stripe = ({ price, planName, plan, setSubscribed }) => {
   return (
     <StripeProvider apiKey="pk_test_j1McZfQ85E6wZaJacUIpcV9F">
       <Elements>
-        <CheckoutForm 
-          price={price} 
+        <CheckoutForm
+          price={price}
           planName={planName}
           plan={plan}
           setSubscribed={setSubscribed} />
@@ -521,7 +588,7 @@ const nameByPlan = {
 }
 
 const SubscriptionButton = ({ subscribed, selected, setSubscribed }) => {
-  const cancelSub = useCallback(async () => {
+  const cancelSubProps = useSubmitButton("Cancel", async () => {
     await fetch("/cancel_subscription", {
       method: "POST",
       credentials: "include",
@@ -534,7 +601,7 @@ const SubscriptionButton = ({ subscribed, selected, setSubscribed }) => {
 
   }, [])
 
-  const changeSub = useCallback(async () => {
+  const changeSubProps = useSubmitButton("Change Subscription", async () => {
     await fetch("/change_subscription", {
       method: "POST",
       credentials: "include",
@@ -552,23 +619,24 @@ const SubscriptionButton = ({ subscribed, selected, setSubscribed }) => {
 
   if (subscribed === selected || subscribed && !selected) {
     return (
-      <Button color="rgb(251, 83, 83)" onClick={cancelSub}>
-       Cancel
-      </Button>
+      <Button
+        color="rgb(251, 83, 83)"
+        {...cancelSubProps} />
     )
-  } 
+  }
   else if (selected === "poll-app-personal" && !subscribed) {
     return (
-      <Button color="rgb(83, 166, 251)" onClick={() => {}}>
-       Add To Slack
-      </Button>
+      <Button
+        color="rgb(83, 166, 251)"
+        onClick={() => {}}
+        text="Add To Slack" />
     )
   }
   else {
     return (
-      <Button color="rgb(83, 166, 251)" onClick={changeSub}>
-       Change Subscription
-      </Button>
+      <Button
+        color="rgb(83, 166, 251)"
+        {...changeSubProps} />
     )
   }
 }
@@ -674,9 +742,9 @@ const Main = ({ user }) => {
         </Flex>
       </Container>
       <Container justify="center" style={{paddingTop: 30}}>
-        <Pricing 
-          subscribed={subscribed} 
-          selected={selected} 
+        <Pricing
+          subscribed={subscribed}
+          selected={selected}
           setSelected={setSelected}
           loggedIn={user.loggedIn} />
       </Container>
