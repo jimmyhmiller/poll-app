@@ -10,8 +10,9 @@ A [polling app](https://poll-app.now.sh) for slack
 - [x] Message when over counts
 - [x] Handle Expirations
 - [x] Test Stripe integration
-- [ ] Figure out properly stripe flow
-- [ ] Handle User Sessions
-- [ ] Subscriptions page
+- [x] Figure out properly stripe flow
+- [x] Handle User Sessions
+- [x] Subscriptions page
 - [ ] Add test poll ability
-- [ ] Add poll help command
+- [x] Add poll help command
+- [ ] Add footer to every message
