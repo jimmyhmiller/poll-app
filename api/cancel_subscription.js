@@ -3,7 +3,7 @@ const cookie = require("cookie");
 
 require('dotenv').config();
 const stripe = require("stripe")(process.env.STRIPE_SECRET);
-const { teamInfoByAccessToken } = require("./util");
+const { teamInfoByAccessToken, today } = require("./util");
 
 const faunadb = require("faunadb");
 const q = faunadb.query;
@@ -28,7 +28,7 @@ module.exports = async (req, res) => {
   try {
 
     const access_token = getAccessToken(req);
-    const { data: { stripe_id } } = await client.query(teamInfoByAccessToken({ access_token }))
+    const { ref: teamRef, data: { stripe_id } } = await client.query(teamInfoByAccessToken({ access_token }))
 
     const subscription = await fetchStripeSubscription({ stripe_id })
 
@@ -36,6 +36,8 @@ module.exports = async (req, res) => {
       invoice_now: true,
       prorate: true,
     })
+
+    await client.query(q.Update(teamRef, {data: {expirationDate: today()}}))
 
     send(res, 200, { status: "unsubscribed" });
   } catch (e) {

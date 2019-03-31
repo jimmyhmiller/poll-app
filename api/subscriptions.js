@@ -35,7 +35,7 @@ module.exports = async (req, res) => {
       items: [{plan}]
     })
 
-    await client.query(q.Update(teamRef, {data: {maxCount: monthlyCounts[plan]}}))
+    await client.query(q.Update(teamRef, {data: {maxCount: monthlyCounts[plan], expirationDate: null}}))
 
     send(res, 200, { status: "Created!" });
   } catch (e) {

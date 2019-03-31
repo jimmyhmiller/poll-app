@@ -460,24 +460,26 @@ const CheckoutForm = injectStripe(({ price, planName, stripe, plan, setSubscribe
   const email = useInput("");
 
   const submitProps = useSubmitButton("Subscribe", async () => {
-    const stripeToken = await stripe.createToken({ name: name.value });
+    const { token } = await stripe.createToken({ name: name.value });
 
-    await fetch("/subscriptions", {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        "Accept": "application/json",
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        plan,
-        email: email.value,
-        id: stripeToken.id,
+    if (token.id) {
+      await fetch("/subscriptions", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Accept": "application/json",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          plan,
+          email: email.value,
+          id: token.id
+        })
+
       })
 
-    })
-
-    setSubscribed(plan)
+      setSubscribed(plan)
+    }
 
   }, [name.value, email.value, stripe, plan])
 
