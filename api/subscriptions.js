@@ -15,7 +15,12 @@ const getAccessToken = (req) =>
   (cookie.parse(req.headers.cookie || '').access_token) ||
   req.headers.authorization
 
-
+const counts = {
+  "poll-app-personal": 25,
+  "poll-app-basic": 50,
+  "poll-app-premium": 100,
+  "poll-app-enterprise": 10000,
+}
 
 module.exports = async (req, res) => {
 
@@ -23,7 +28,7 @@ module.exports = async (req, res) => {
     const { id, email, plan } = await json(req);
 
     const access_token = getAccessToken(req);
-    const { data: { stripe_id } } = await client.query(teamInfoByAccessToken({ access_token }))
+    const { ref: teamRef, data: { stripe_id } } = await client.query(teamInfoByAccessToken({ access_token }))
 
     await stripe.customers.update(stripe_id, {
       email: email,
@@ -34,6 +39,8 @@ module.exports = async (req, res) => {
       customer: stripe_id,
       items: [{plan}]
     })
+
+    await client.query(q.Update(teamRef, {data: {maxCount: counts[plan]}}))
 
     send(res, 200, { status: "Created!" });
   } catch (e) {

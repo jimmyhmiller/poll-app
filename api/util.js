@@ -254,6 +254,13 @@ const buildPoll = ({question, options, body, anonymous}) => {
   }
 }
 
+const monthlyCounts = {
+  "poll-app-personal": 25,
+  "poll-app-basic": 50,
+  "poll-app-premium": 100,
+  "poll-app-enterprise": 10000,
+}
+
 module.exports = {
   buildPollMessage,
   buildPoll,
@@ -271,4 +278,5 @@ module.exports = {
   upsertUserAccessToken,
   userInfoByAccessToken,
   teamInfoByAccessToken,
+  monthlyCounts,
 }
