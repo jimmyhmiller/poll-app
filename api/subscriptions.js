@@ -3,7 +3,7 @@ const cookie = require("cookie");
 
 require('dotenv').config();
 const stripe = require("stripe")(process.env.STRIPE_SECRET);
-const { teamInfoByAccessToken } = require("./util");
+const { teamInfoByAccessToken, monthlyCounts } = require("./util");
 
 const faunadb = require("faunadb");
 const q = faunadb.query;
@@ -15,12 +15,7 @@ const getAccessToken = (req) =>
   (cookie.parse(req.headers.cookie || '').access_token) ||
   req.headers.authorization
 
-const counts = {
-  "poll-app-personal": 25,
-  "poll-app-basic": 50,
-  "poll-app-premium": 100,
-  "poll-app-enterprise": 10000,
-}
+
 
 module.exports = async (req, res) => {
 
@@ -40,7 +35,7 @@ module.exports = async (req, res) => {
       items: [{plan}]
     })
 
-    await client.query(q.Update(teamRef, {data: {maxCount: counts[plan]}}))
+    await client.query(q.Update(teamRef, {data: {maxCount: monthlyCounts[plan]}}))
 
     send(res, 200, { status: "Created!" });
   } catch (e) {
