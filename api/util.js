@@ -10,10 +10,21 @@ const removeSmartQuotes = (str) =>
   str.replace(/(\u201C|\u201D)/g, '"')
 
 const parseMessage = text => {
+
+  console.log(text)
+  // This code is super ugly.
   const cleanedText = removeSmartQuotes(text)
-  const [question, ...options] = cleanedText
-    .match(/".*?"/g)
+  const [question, ...options] = (cleanedText
+    .match(/".*?"/g) || [])
     .map(cleanString);
+
+  if (!question) {
+    const [command, ...args] = cleanedText.split(" ")
+    return {
+      command,
+      args,
+    }
+  }
 
   const anonymous = cleanedText
     .substring(cleanedText.lastIndexOf("\""))

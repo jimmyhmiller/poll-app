@@ -35,6 +35,26 @@ const createPoll = (poll) => {
   )
 }
 
+const commandMessage = ({ command, args }) => {
+  if (command === "help") {
+    return {
+      response_type: "ephemeral",
+      replace_original: false,
+      attachments: [
+        {
+          title: "Create a poll.",
+          text: "/poll “Favorite food?” “Pizza” “Ice Cream” “Other”"
+        }, {
+          title: "Create an anonymous poll.",
+          text: "/poll “Where to eat?” “Home” “Out” anonymous"
+        }
+      ]
+    }
+  } else {
+    return ephemeralMessage(`Command ${command} not find. Try \`/poll help\` for more information.`)
+  }
+}
+
 // Ultimately these will be a bit different.
 // Need to actually provide actions to remedy these issues.
 const overLimitMessage = "You have made too many polls this month. Please upgrade your plan to make more polls."
@@ -44,7 +64,13 @@ const unexpectedError = "An unexpected error has occured";
 module.exports = async (req, res) => {
   try {
     const body = await parseUrlEncode(req);
-    const { question, options, anonymous } = parseMessage(body.text);
+    const { question, options, anonymous, command, args } = parseMessage(body.text);
+
+    if (command) {
+      send(res, 200, commandMessage({ command, args}))
+      return;
+    }
+
     const poll = buildPoll({ question, options, body, anonymous });
     const callback_id = poll.data.callback_id
 
@@ -53,11 +79,11 @@ module.exports = async (req, res) => {
     if (action === "created") {
       send(res, 200, buildPollMessage({ question, options, anonymous, callback_id }));
     } else if (action === "overLimit") {
-      send(res, 200, ephemeralMesssage(overLimitMessage))
+      send(res, 200, ephemeralMessage(overLimitMessage))
     } else if (action === "expired") {
       send(res, 200, ephemeralMessage(expiredMessage))
     } else {
-       send(res, 200, ephemeralMessage(unexpectedError))
+      send(res, 200, ephemeralMessage(unexpectedError))
     }
 
   } catch (e) {
