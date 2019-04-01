@@ -1,7 +1,6 @@
 require('dotenv').config();
 const { send } = require('micro');
 const parseUrlEncode = require('urlencoded-body-parser');
-const { setIn } = require('zaphod/compat');
 const { buildPollMessage } = require('./util');
 
 const faunadb = require("faunadb");
@@ -73,12 +72,4 @@ module.exports = async (req, res) => {
 
   }
 };
-
-// module.exports = {
-//   buildResponse,
-//   vote,
-//   getVoteData,
-// }
-
-
 

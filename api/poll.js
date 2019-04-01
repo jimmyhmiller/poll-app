@@ -12,6 +12,7 @@ const {
   maxCount,
   ephemeralMessage,
   teamIsExpired,
+  addFooterToMessage,
 } = require("./util");
 
 const faunadb = require("faunadb");
@@ -37,19 +38,21 @@ const createPoll = (poll) => {
 
 const commandMessage = ({ command, args }) => {
   if (command === "help") {
-    return {
+    return addFooterToMessage({
       response_type: "ephemeral",
       replace_original: false,
       attachments: [
         {
+          color: "#53a6fb",
           title: "Create a poll.",
           text: "/poll “Favorite food?” “Pizza” “Ice Cream” “Other”"
         }, {
+          color: "#53a6fb",
           title: "Create an anonymous poll.",
           text: "/poll “Where to eat?” “Home” “Out” anonymous"
         }
       ]
-    }
+    })
   } else {
     return ephemeralMessage(`Command ${command} not find. Try \`/poll help\` for more information.`)
   }

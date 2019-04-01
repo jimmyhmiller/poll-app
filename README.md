@@ -15,4 +15,4 @@ A [polling app](https://poll-app.now.sh) for slack
 - [x] Subscriptions page
 - [ ] Add test poll ability
 - [x] Add poll help command
-- [ ] Add footer to every message
+- [x] Add footer to every message

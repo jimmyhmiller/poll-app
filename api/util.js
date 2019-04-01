@@ -11,7 +11,6 @@ const removeSmartQuotes = (str) =>
 
 const parseMessage = text => {
 
-  console.log(text)
   // This code is super ugly.
   const cleanedText = removeSmartQuotes(text)
   const [question, ...options] = (cleanedText
@@ -96,6 +95,7 @@ const buildActionAttachments = (options, callback_id) => {
   const groups = partitionAll(5, actions);
   return groups.map(group => {
     return {
+      color: "#53a6fb",
       fallback: "A new poll was made.",
       callback_id,
       actions: group,
@@ -103,18 +103,22 @@ const buildActionAttachments = (options, callback_id) => {
   })
 }
 
-const ephemeralMessage = (text) => ({
-  text,
+const ephemeralMessage = (text) => addFooterToMessage({
+  attachments: [{
+    color: "#53a6fb",
+    text,
+   }],
   response_type: "ephemeral",
   replace_original: false
 })
 
 const buildPollMessage = ({ question, options, callback_id, anonymous }) => {
   const actions = buildActions(options)
-  return {
+  return addFooterToMessage({
     response_type: "in_channel",
     replace_original: "false",
     attachments: [{
+      color: "#53a6fb",
       pretext: anonymous ? "This survey is anonymous" : null,
       title: question,
       mrkdwn_in: ["fields"],
@@ -122,6 +126,20 @@ const buildPollMessage = ({ question, options, callback_id, anonymous }) => {
       fallback: "A new poll was made.",
       callback_id: callback_id,
     }].concat(buildActionAttachments(options, callback_id))
+  })
+}
+
+const footer = {
+  text: "", // without this slack with remove the footer on update
+  color: "#53a6fb",
+  footer: `<https://poll-app.now.sh|Poll App Settings>`,
+  footer_icon: "https://poll-app.now.sh/static/logo-only-bars.png",
+}
+
+const addFooterToMessage = (message) => {
+  return {
+    ...message,
+    attachments: message.attachments.concat([footer])
   }
 }
 
@@ -290,4 +308,5 @@ module.exports = {
   userInfoByAccessToken,
   teamInfoByAccessToken,
   monthlyCounts,
+  addFooterToMessage,
 }
