@@ -292,7 +292,19 @@ const PriceCard = ({
   </Flex>
 );
 
+const addToSlack = () => window.location = "https://slack.com/oauth/authorize?client_id=35696317461.504169540400&scope=commands"
+
+const selectOrAdd = (loggedIn, setSelected) =>  plan => () => {
+  if (loggedIn) {
+    setSelected(plan)
+  } else {
+    addToSlack()
+  }
+}
+
+
 const Pricing = ({ selected, setSelected, subscribed, loggedIn }) => {
+  const select = selectOrAdd(loggedIn, setSelected)
   return (
     <Flex direction="row" justify="center" align="flex-end">
       <SelectablePriceCard
@@ -304,7 +316,7 @@ const Pricing = ({ selected, setSelected, subscribed, loggedIn }) => {
         accentColor="rgb(57 104 178)"
         buttonText="Add To Slack"
         title="Personal"
-        onClick={() => { if (loggedIn) { setSelected("poll-app-personal") } } }  />
+        onClick={select("poll-app-personal")} />
       <SelectablePriceCard
         selected={selected}
         subscribed={subscribed}
@@ -316,7 +328,7 @@ const Pricing = ({ selected, setSelected, subscribed, loggedIn }) => {
         subtitle="Most Popular"
         buttonText="Try Now"
         title="Basic"
-        onClick={() => { if (loggedIn) { setSelected("poll-app-basic") } } }  />
+        onClick={select("poll-app-basic")} />
       <SelectablePriceCard
         selected={selected}
         subscribed={subscribed}
@@ -327,7 +339,7 @@ const Pricing = ({ selected, setSelected, subscribed, loggedIn }) => {
         buttonVariant="contained"
         buttonText="Sign Up Now"
         title="Premium"
-        onClick={() => { if (loggedIn) { setSelected("poll-app-premium") } } } />
+        onClick={select("poll-app-premium")} />
       <SelectablePriceCard
         selected={selected}
         subscribed={subscribed}
@@ -337,7 +349,7 @@ const Pricing = ({ selected, setSelected, subscribed, loggedIn }) => {
         accentColor="rgb(63, 140, 251)"
         buttonText="Sign Up Now"
         title="Enterprise"
-        onClick={() => { if (loggedIn) { setSelected("poll-app-enterprise") } } }  />
+        onClick={select("poll-app-enterprise")} />
     </Flex>
   )
 }
