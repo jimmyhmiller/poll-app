@@ -699,7 +699,16 @@ const SecondaryPanel = ({ selected, subscribed, subscription, setSubscribed, ...
 
 const titleCase = (str) => str && str[0].toUpperCase() + str.substring(1);
 
-
+const AddToSlack = () =>
+  <a href="https://slack.com/oauth/authorize?client_id=35696317461.504169540400&scope=commands">
+    <img
+      alt="Add to Slack"
+      src="https://platform.slack-edge.com/img/add_to_slack.png"
+      srcSet="https://platform.slack-edge.com/img/add_to_slack.png 1x, https://platform.slack-edge.com/img/add_to_slack@2x.png 2x"
+      width={139}
+      height={40}
+    />
+  </a>
 
 const Main = ({ user }) => {
   const [subscribed , setSubscribed] = useDevState("setSubscribed", user.subscription && user.subscription.plan && user.subscription.plan.id);
@@ -728,6 +737,9 @@ const Main = ({ user }) => {
               <Text secondary align="center" style={{maxWidth: 600}}>
                 Make and take polls right in Slack. Gather feedback or make decisions without needing to schedule a meeting.
               </Text>
+            </Flex>
+            <Flex justify="center">
+              <AddToSlack />
             </Flex>
           </Flex>
 
