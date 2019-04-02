@@ -244,6 +244,8 @@ const incrementMonth = (poll) => {
   )
 }
 
+const refByIndex = (index, value) => q.Match(q.Index(index), value)
+
 const getRefByIndex = (index, value) =>
   q.Select("ref", q.Get(q.Match(q.Index(index), value)))
 
@@ -254,7 +256,7 @@ const createTeamIfNotExists = (team_id) => {
 
 
 const userInfoByAccessToken = ({ access_token }) => {
-  return q.Get(matchIndex("user-by-access-token", access_token))
+  return q.Get(matchIndex("get-user-by-access-token", access_token))
 }
 
 const teamInfoByAccessToken = ({ access_token }) => {
@@ -262,11 +264,11 @@ const teamInfoByAccessToken = ({ access_token }) => {
 }
 
 const upsertUserAccessToken = ({ team_id, user_id, slack_access_token, access_token }) => {
-  const team = getRefByIndex("teams-by-team-id", team_id);
-  const userRef = getRefByIndex("users-by-user-id", user_id);
+  const team = refByIndex("teams-by-team-id", team_id);
+  const userRef = refByIndex("users-by-user-id", user_id);
   return q.Do(
-    createIfNotExists("teams", team, { data: { team_id }}),
-    upsert("users", userRef, { data: { user_id, slack_access_token, access_token, team }}),
+    createIfNotExists("teams", team, { data: { team_id, maxCount: 25 }}),
+    upsert("users", userRef, { data: { user_id, slack_access_token, access_token, team: q.Select("ref", q.Get(team)) }}),
     q.Get(team)
   )
 }
@@ -309,4 +311,7 @@ module.exports = {
   teamInfoByAccessToken,
   monthlyCounts,
   addFooterToMessage,
+  getRefByIndex,
+  upsert,
+  refByIndex,
 }
