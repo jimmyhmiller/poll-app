@@ -4,12 +4,14 @@
   "main": "index.js",
   "license": "MIT",
   "dependencies": {
+    "@mdx-js/loader": "^0.20.3",
+    "@zeit/next-mdx": "^1.2.0",
     "cookie": "^0.3.1",
     "dateformat": "^3.0.3",
     "isomorphic-unfetch": "^3.0.0",
-    "next": "^8.0.3",
-    "react": "16.8.0",
-    "react-dom": "16.8.0",
+    "next": "^8.0.4",
+    "react": "^16.8.6",
+    "react-dom": "^16.8.6",
     "react-stripe-elements": "^2.0.2",
     "tinycolor2": "^1.4.1"
   },
