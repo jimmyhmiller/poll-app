@@ -49,13 +49,17 @@
       "src": "^/user",
       "dest": "/api/user.js"
     },
-        {
+    {
       "src": "^/logout",
       "dest": "/api/logout.js"
     },
     {
       "src": "^/",
       "dest": "/frontend/"
+    },
+    {
+      "src": "^/privacy",
+      "dest": "/frontend/privacy"
     },
     {
       "src": "^/static/(.*)",
