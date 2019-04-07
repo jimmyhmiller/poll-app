@@ -10,6 +10,7 @@
     "dateformat": "^3.0.3",
     "isomorphic-unfetch": "^3.0.0",
     "next": "^8.0.4",
+    "query-string": "^6.4.2",
     "react": "^16.8.6",
     "react-dom": "^16.8.6",
     "react-stripe-elements": "^2.0.2",

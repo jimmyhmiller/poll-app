@@ -3,18 +3,16 @@ const cookie = require("cookie");
 
 require('dotenv').config();
 const stripe = require("stripe")(process.env.STRIPE_SECRET);
-const { teamInfoByAccessToken, monthlyCounts } = require("./util");
+const { teamInfoByAccessToken, subscribe } = require("./util");
 
 const faunadb = require("faunadb");
 const q = faunadb.query;
 
 const client = new faunadb.Client({ secret: process.env.FAUNA_SECRET });
 
-
 const getAccessToken = (req) =>
   (cookie.parse(req.headers.cookie || '').access_token) ||
   req.headers.authorization
-
 
 
 module.exports = async (req, res) => {
@@ -30,12 +28,7 @@ module.exports = async (req, res) => {
       source: id,
     })
 
-    await stripe.subscriptions.create({
-      customer: stripe_id,
-      items: [{plan}]
-    })
-
-    await client.query(q.Update(teamRef, {data: {maxCount: monthlyCounts[plan], expirationDate: null}}))
+    await subscribe({ stripe_id, client, plan, stripe, teamRef })
 
     send(res, 200, { status: "Created!" });
   } catch (e) {

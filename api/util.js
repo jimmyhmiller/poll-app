@@ -292,6 +292,30 @@ const monthlyCounts = {
   "poll-app-enterprise": 10000,
 }
 
+const setPlan = ({ teamRef, plan }) => 
+  q.Update(teamRef, {data: {maxCount: monthlyCounts[plan], expirationDate: null}})
+
+const fetchStripeSubscription = async ({ stripe, stripe_id }) => {
+  const customer = await stripe.customers.retrieve(stripe_id)
+  return customer.subscriptions.data[0]
+}
+
+
+
+const subscribe = async ({ stripe_id, client, plan, stripe, teamRef }) => {
+  const hasSubscription = !!(await fetchStripeSubscription({ stripe, stripe_id }))
+  if (hasSubscription) {
+    return;
+  }
+
+  await stripe.subscriptions.create({
+    customer: stripe_id,
+    items: [{plan}]
+  })
+
+  await client.query(setPlan({ teamRef, plan }))
+}
+
 module.exports = {
   buildPollMessage,
   buildPoll,
@@ -314,4 +338,5 @@ module.exports = {
   getRefByIndex,
   upsert,
   refByIndex,
+  subscribe,
 }

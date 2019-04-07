@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useReducer } from "react";
 import PropTypes from "prop-types";
 import Head from 'next/head'
 import tinycolor from "tinycolor2"
+import queryString from "query-string";
 import cookie from "cookie";
 import {
   CardElement,
@@ -292,13 +293,15 @@ const PriceCard = ({
   </Flex>
 );
 
-const addToSlack = () => window.location = "https://slack.com/oauth/authorize?client_id=35696317461.504169540400&scope=commands"
+const addToSlack = (plan) => {
+  window.location = loginUrl + "&redirect_uri=" + encodeURI("https://poll-app.now.sh/oauth?selected=" + plan)
+}
 
-const selectOrAdd = (loggedIn, setSelected) =>  plan => () => {
+const selectOrAdd = (loggedIn, setSelected) => plan => () => {
   if (loggedIn) {
     setSelected(plan)
   } else {
-    addToSlack()
+    addToSlack(plan)
   }
 }
 
@@ -314,7 +317,7 @@ const Pricing = ({ selected, setSelected, subscribed, loggedIn }) => {
         price={0}
         features={["Non-Commercial Use", "25 polls a month"]}
         accentColor="rgb(57 104 178)"
-        buttonText="Add To Slack"
+        buttonText="Sign Up Now"
         title="Personal"
         onClick={select("poll-app-personal")} />
       <SelectablePriceCard
@@ -365,6 +368,9 @@ const LoggedInActions = ({ team }) =>
     </Flex>
   </Flex>
 
+
+const loginUrl = "https://slack.com/oauth/authorize?scope=identity.basic,identity.team&client_id=35696317461.504169540400"
+
 const Header = ({ team }) => {
 
   if (team) {
@@ -376,7 +382,7 @@ const Header = ({ team }) => {
   return (
     <Flex style={{backgroundColor: "rgb(83, 166, 251)", marginBottom: 20}} direction="row" justify="flex-end">
       <Flex style={{paddingRight: 30}} direction="row" alignSelf="flex-end">
-        <Text href="https://slack.com/oauth/authorize?scope=identity.basic,identity.team&client_id=35696317461.504169540400" color="white" size={16}>Login</Text>
+        <Text href={loginUrl} color="white" size={16}>Login</Text>
       </Flex>
     </Flex>
   )
@@ -671,7 +677,7 @@ const ActiveSubscription = ({ subscribed, selected, subscription, setSubscribed 
   const planName = nameByPlan[currentShown];
   const price = priceBySelected[currentShown]
 
-  const nextChargeDate = subscription.current_period_end && dateformat(new Date(subscription.current_period_end * 1000), "mmmm dS")
+  const nextChargeDate = subscription && subscription.current_period_end && dateformat(new Date(subscription.current_period_end * 1000), "mmmm dS")
 
   return (
     <Card style={style} accentColor="rgb(83 166 251)" padding={0}>
@@ -722,9 +728,9 @@ const AddToSlack = () =>
     />
   </a>
 
-const Main = ({ user }) => {
+const Main = ({ user, initialSelection }) => {
   const [subscribed , setSubscribed] = useDevState("setSubscribed", user.subscription && user.subscription.plan && user.subscription.plan.id);
-  const [selected, setSelected]  = useDevState("setSelected", null);
+  const [selected, setSelected]  = useDevState("setSelected", initialSelection);
   useDevTools();
   return (
     <>
@@ -751,7 +757,7 @@ const Main = ({ user }) => {
               </Text>
             </Flex>
             <Flex justify="center">
-              <AddToSlack />
+              { subscribed && <AddToSlack /> }
             </Flex>
           </Flex>
 
@@ -767,7 +773,7 @@ const Main = ({ user }) => {
           </Flex>
         </Flex>
       </Container>
-      <Container justify="center" style={{paddingTop: 30}}>
+      <Container justify="center" style={{paddingTop: 20}}>
         <Pricing
           subscribed={subscribed}
           selected={selected}
@@ -778,7 +784,7 @@ const Main = ({ user }) => {
   )
 }
 
-Main.getInitialProps = async ({ req }) => {
+Main.getInitialProps = async ({ req, query: { selected } }) => {
 
   const host = req.headers.host.startsWith("localhost") ? "poll-app.now.sh" : req.headers.host
 
@@ -789,7 +795,7 @@ Main.getInitialProps = async ({ req }) => {
     }
   });
   const user = await res.json();
-  return { user };
+  return { user, initialSelection: selected };
 };
 
 export default Main
