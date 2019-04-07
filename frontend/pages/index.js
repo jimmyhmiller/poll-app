@@ -293,7 +293,7 @@ const PriceCard = ({
   </Flex>
 );
 
-const addToSlack = (plan) => {
+const signUpWithSlack = (plan) => {
   window.location = loginUrl + "&redirect_uri=" + encodeURI("https://poll-app.now.sh/oauth?selected=" + plan)
 }
 
@@ -301,7 +301,7 @@ const selectOrAdd = (loggedIn, setSelected) => plan => () => {
   if (loggedIn) {
     setSelected(plan)
   } else {
-    addToSlack(plan)
+    signUpWithSlack(plan)
   }
 }
 
@@ -648,8 +648,8 @@ const SubscriptionButton = ({ subscribed, selected, setSubscribed }) => {
     return (
       <Button
         color="rgb(83, 166, 251)"
-        onClick={() => {}}
-        text="Add To Slack" />
+        onClick={() => signUpWithSlack(selected)}
+        text="Sign Up" />
     )
   }
   else {
