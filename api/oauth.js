@@ -33,7 +33,7 @@ const upsertUserAndTeamInfo = async ({ team_id, user_id, slack_access_token, acc
   }
 
   const { stripe_id } = await stripe.customers.create()
-  const response = await client.query(q.Update(teamInfo.ref, { data: { stripe_id: id }}))
+  const response = await client.query(q.Update(teamInfo.ref, { data: { stripe_id }}))
 
   return response.data;
 
