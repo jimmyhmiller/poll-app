@@ -293,8 +293,10 @@ const PriceCard = ({
   </Flex>
 );
 
+const addToSlackUrl = "https://slack.com/oauth/authorize?client_id=35696317461.504169540400&scope=commands"
+
 const signUpWithSlack = (plan) => {
-  window.location = loginUrl + "&redirect_uri=" + encodeURI("https://poll-app.now.sh/oauth?selected=" + plan)
+  window.location = addToSlackUrl + "&redirect_uri=" + encodeURI("https://poll-app.now.sh/oauth?selected=" + plan)
 }
 
 const selectOrAdd = (loggedIn, setSelected) => plan => () => {
@@ -473,7 +475,7 @@ const useInput = (initialState) => {
   }
 }
 
-const CheckoutForm = injectStripe(({ price, planName, stripe, plan, setSubscribed }) => {
+const CheckoutForm = injectStripe(({ price, planName, stripe, plan, setSubscribed, setHasCard }) => {
   const name = useInput("");
   const email = useInput("");
 
@@ -497,6 +499,7 @@ const CheckoutForm = injectStripe(({ price, planName, stripe, plan, setSubscribe
       })
 
       setSubscribed(plan)
+      setHasCard(true)
     }
 
   }, [name.value, email.value, stripe, plan])
@@ -558,7 +561,7 @@ const CheckoutForm = injectStripe(({ price, planName, stripe, plan, setSubscribe
 const DemoImage = () =>
   <img style={{width: 253, height: 500, padding: "0 10px"}} src="/static/pixel-white.png" />
 
-const Stripe = ({ price, planName, plan, setSubscribed }) => {
+const Stripe = ({ price, planName, plan, setSubscribed, setHasCard }) => {
   if (!process.browser) {
     return null;
   }
@@ -566,6 +569,7 @@ const Stripe = ({ price, planName, plan, setSubscribed }) => {
     <StripeProvider apiKey="pk_test_j1McZfQ85E6wZaJacUIpcV9F">
       <Elements>
         <CheckoutForm
+          setHasCard={setHasCard}
           price={price}
           planName={planName}
           plan={plan}
@@ -644,14 +648,6 @@ const SubscriptionButton = ({ subscribed, selected, setSubscribed }) => {
         {...cancelSubProps} />
     )
   }
-  else if (selected === "poll-app-personal" && !subscribed) {
-    return (
-      <Button
-        color="rgb(83, 166, 251)"
-        onClick={() => signUpWithSlack(selected)}
-        text="Sign Up" />
-    )
-  }
   else {
     return (
       <Button
@@ -685,7 +681,7 @@ const ActiveSubscription = ({ subscribed, selected, subscription, setSubscribed 
 
         <PlanDescription price={price} planName={planName}>
           {price > 0
-            ? <Text size={12} style={{padding:0, margin:0}} secondary>Next Charge {nextChargeDate} </Text>
+            ? <Text size={12} style={{padding:0, margin:0}} secondary>{nextChargeDate && `Next Charge ${nextChargeDate}`} </Text>
             : <Text size={12} style={{padding:0, margin:0}} secondary>Non-Commercial Use</Text>}
         </PlanDescription>
         <Flex style={{height: 55}} direction="column" justify="flex-end">
@@ -699,19 +695,33 @@ const ActiveSubscription = ({ subscribed, selected, subscription, setSubscribed 
   )
 }
 
-const SecondaryPanel = ({ selected, subscribed, subscription, setSubscribed, ...rest }) => {
+const SecondaryPanel = ({ selected, subscribed, subscription, setSubscribed, hasCard, setHasCard }) => {
+
+  const currentShown = selected || subscribed;
+  const planName = nameByPlan[currentShown];
+  const price = priceBySelected[currentShown]
+
   if (!subscribed && !selected) {
-    return <DemoImage {...rest} />
-  } else if (subscribed || selected === "poll-app-personal") {
+    return <DemoImage />
+  } else if (hasCard || selected === "poll-app-personal") {
     return (
       <ActiveSubscription
+        hasCard={hasCard}
         subscription={subscription}
         subscribed={subscribed}
         selected={selected}
         setSubscribed={setSubscribed} />
     )
   } else {
-    return <Stripe setSubscribed={setSubscribed} {...rest} />
+    return (
+      <Stripe 
+        hasCard={hasCard}
+        setHasCard={setHasCard}
+        setSubscribed={setSubscribed}
+        planName={planName}
+        price={price}
+        plan={currentShown} />
+    )
   }
 }
 
@@ -729,6 +739,7 @@ const AddToSlack = () =>
   </a>
 
 const Main = ({ user, initialSelection }) => {
+  const [hasCard, setHasCard] = useDevState("setHasCard", user.hasCard);
   const [subscribed , setSubscribed] = useDevState("setSubscribed", user.subscription && user.subscription.plan && user.subscription.plan.id);
   const [selected, setSelected]  = useDevState("setSelected", initialSelection);
   useDevTools();
@@ -763,13 +774,12 @@ const Main = ({ user, initialSelection }) => {
 
           <Flex direction="column" justify="center" align="center">
             <SecondaryPanel
+              setHasCard={setHasCard}
+              hasCard={hasCard}
               setSubscribed={setSubscribed}
               subscription={user.subscription}
               selected={selected}
-              subscribed={subscribed}
-              plan={subscribed || selected}
-              planName={nameByPlan[subscribed || selected]}
-              price={priceBySelected[subscribed || selected]} />
+              subscribed={subscribed} />
           </Flex>
         </Flex>
       </Container>
@@ -785,10 +795,10 @@ const Main = ({ user, initialSelection }) => {
 }
 
 Main.getInitialProps = async ({ req, query: { selected } }) => {
+  const host = req.headers.host
+  const protocol = host.startsWith("localhost") ? "http" : "https"
 
-  const host = req.headers.host.startsWith("localhost") ? "poll-app.now.sh" : req.headers.host
-
-  const res = await fetch(`https://${host}/user`, {
+  const res = await fetch(`${protocol}://${host}/user`, {
     credentials: "include", // polyfill only supports include for cookies
     headers: {
       cookie: req.headers.cookie // Stupid hack around server side rendering stuff

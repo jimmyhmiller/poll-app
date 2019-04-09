@@ -28,7 +28,9 @@ module.exports = async (req, res) => {
       source: id,
     })
 
-    await subscribe({ stripe_id, client, plan, stripe, teamRef })
+
+    const customer = await stripe.customers.retrieve(stripe_id)
+    await subscribe({ customer, client, plan, stripe_id, stripe, teamRef })
 
     send(res, 200, { status: "Created!" });
   } catch (e) {

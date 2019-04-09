@@ -193,7 +193,7 @@ const maxCount = (poll) => {
   return q.Select(
     ["data", "maxCount"],
     q.Get(poll.data.team),
-    5
+    0
   )
 }
 
@@ -267,7 +267,7 @@ const upsertUserAccessToken = ({ team_id, user_id, slack_access_token, access_to
   const team = refByIndex("teams-by-team-id", team_id);
   const userRef = refByIndex("users-by-user-id", user_id);
   return q.Do(
-    createIfNotExists("teams", team, { data: { team_id, maxCount: 25 }}),
+    createIfNotExists("teams", team, { data: { team_id }}),
     upsert("users", userRef, { data: { user_id, slack_access_token, access_token, team: q.Select("ref", q.Get(team)) }}),
     q.Get(team)
   )
@@ -296,24 +296,28 @@ const setPlan = ({ teamRef, plan }) =>
   q.Update(teamRef, {data: {maxCount: monthlyCounts[plan], expirationDate: null}})
 
 const fetchStripeSubscription = async ({ stripe, stripe_id }) => {
-  const customer = await stripe.customers.retrieve(stripe_id)
+  console.log(customer)
   return customer.subscriptions.data[0]
 }
 
 
 
-const subscribe = async ({ stripe_id, client, plan, stripe, teamRef }) => {
-  const hasSubscription = !!(await fetchStripeSubscription({ stripe, stripe_id }))
-  if (hasSubscription) {
-    return;
+const subscribe = async ({ customer, client, plan, stripe, teamRef, stripe_id }) => {
+  const subscription = customer.subscriptions.data[0]
+  if (subscription) {
+    await stripe.subscriptionItems.update(subscription.items.data[0].id, {
+      plan
+    })
+    return subscription;
   }
 
-  await stripe.subscriptions.create({
+  const newSubscription = await stripe.subscriptions.create({
     customer: stripe_id,
     items: [{plan}]
   })
 
   await client.query(setPlan({ teamRef, plan }))
+  return newSubscription;
 }
 
 module.exports = {

@@ -19,12 +19,16 @@ const getAccessToken = (req) =>
 
 const fetchStripeSubscription = async ({ stripe_id }) => {
   if (stripe_id) {
-    console.log("stripe_id found")
     const customer = await stripe.customers.retrieve(stripe_id)
-    return customer.subscriptions.data[0] || {}
+    console.log(customer)
+    return {
+      subscription: customer.subscriptions.data[0] || {},
+      hasCard: customer.sources.total_count !== 0
+    }
   } else {
-    console.log("stripe_id not found")
-    return {}
+    return {
+      hasCard: false
+    }
   }
 }
 
@@ -52,14 +56,14 @@ module.exports = async (req, res) => {
       client.query(teamInfoByAccessToken({ access_token })),
     ])
 
-    const [slack, subscription] = await Promise.all([
+    const [slack, customerInfo] = await Promise.all([
       fetchSlackInfo({ slack_access_token }),
       fetchStripeSubscription({ stripe_id })
     ]);
 
     send(res, 200, {
       slack,
-      subscription,
+      ...customerInfo,
       loggedIn: slack.ok
     })
   } catch (e) {

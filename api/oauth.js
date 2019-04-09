@@ -72,11 +72,14 @@ module.exports = async (req, res) => {
     const teamInfo = await upsertUserAndTeamInfo({ team_id, user_id, slack_access_token, access_token })
 
     if (selected === "poll-app-personal") {
+      const customer = await stripe.customers.retrieve(teamInfo.data.stripe_id)
+
       await subscribe({
         stripe,
         client,
-        teamRef: teamInfo.ref,
         stripe_id: teamInfo.data.stripe_id,
+        teamRef: teamInfo.ref,
+        customer,
         plan: selected
       });
     }
