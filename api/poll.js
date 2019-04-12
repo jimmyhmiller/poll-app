@@ -40,11 +40,15 @@ const createPoll = (poll) => {
 }
 
 const commandMessage = ({ command, args }) => {
-  if (command === "help") {
+  if (command === "help" || command === '') {
     return addFooterToMessage({
       response_type: "ephemeral",
       replace_original: false,
       attachments: [
+        {
+          color: "#53a6fb",
+          text: "To use poll app, try one of the commands below."
+        },
         {
           color: "#53a6fb",
           title: "Create a poll.",
@@ -71,9 +75,10 @@ const unexpectedError = "An unexpected error has occured";
 module.exports = async (req, res) => {
   try {
     const body = await parseUrlEncode(req);
+    console.log(body)
     const { question, options, anonymous, command, args } = parseMessage(body.text);
 
-    if (command) {
+    if (command || command === '') {
       send(res, 200, commandMessage({ command, args}))
       return;
     }

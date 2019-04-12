@@ -9,7 +9,7 @@ const cleanString = (str) =>
 const removeSmartQuotes = (str) =>
   str.replace(/(\u201C|\u201D)/g, '"')
 
-const parseMessage = text => {
+const parseMessage = (text="") => {
 
   // This code is super ugly.
   const cleanedText = removeSmartQuotes(text)
