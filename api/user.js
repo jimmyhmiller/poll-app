@@ -20,7 +20,6 @@ const getAccessToken = (req) =>
 const fetchStripeSubscription = async ({ stripe_id }) => {
   if (stripe_id) {
     const customer = await stripe.customers.retrieve(stripe_id)
-    console.log(customer)
     return {
       subscription: customer.subscriptions.data[0] || {},
       hasCard: customer.sources.total_count !== 0
