@@ -306,14 +306,16 @@ const subscribe = async ({ customer, client, plan, stripe, teamRef, stripe_id })
   const subscription = customer.subscriptions.data[0]
   if (subscription) {
     await stripe.subscriptionItems.update(subscription.items.data[0].id, {
-      plan
+      plan,
+      trial_from_plan: true,
     })
     return subscription;
   }
 
   const newSubscription = await stripe.subscriptions.create({
     customer: stripe_id,
-    items: [{plan}]
+    items: [{plan}],
+    trial_from_plan: true,
   })
 
   await client.query(setPlan({ teamRef, plan }))

@@ -566,7 +566,7 @@ const Stripe = ({ price, planName, plan, setSubscribed, setHasCard }) => {
     return null;
   }
   return (
-    <StripeProvider apiKey="pk_test_j1McZfQ85E6wZaJacUIpcV9F">
+    <StripeProvider apiKey="pk_live_a6qh8FdsITIRlQOf4U7CvyjD">
       <Elements>
         <CheckoutForm
           setHasCard={setHasCard}
