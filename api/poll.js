@@ -61,7 +61,7 @@ const commandMessage = ({ command, args }) => {
       ]
     })
   } else {
-    return ephemeralMessage(`Command ${command} not find. Try \`/poll help\` for more information.`)
+    return ephemeralMessage(`Command ${command} not found. Try \`/poll help\` for more information.`)
   }
 }
 
