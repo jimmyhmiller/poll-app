@@ -1,12 +1,13 @@
 require('dotenv').config();
 const { send } = require('micro');
 const parseUrlEncode = require('urlencoded-body-parser');
-const { buildPollMessage } = require('./util');
+const { buildPollMessage, verifySlackRequest } = require('./util');
 
 const faunadb = require("faunadb");
 const q = faunadb.query;
 
 const client = new faunadb.Client({ secret: process.env.FAUNA_SECRET });
+const slackSigningSecret = process.env.SLACK_SIGNING_SECRET
 
 
 // Slack is stupid and sends form encoded json
@@ -53,6 +54,11 @@ const deleteMessage = ({
 module.exports = async (req, res) => {
   try {
     const body = await parseBody(req);
+
+    const slackVerification = await verifySlackRequest({ slackSigningSecret, req })
+    if (!slackVerification.success) {
+      return ephemeralMessage("Could not verify this message originated from slack. Please try again.")
+    }
 
     if (body.actions[0].value === "delete-poll") {
       send(res, 200, deleteMessage)

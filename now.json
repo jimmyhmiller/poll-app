@@ -18,7 +18,8 @@
     "CLIENT_ID": "@slack-client-id",
     "CLIENT_SECRET": "@slack-client-secret",
     "FAUNA_SECRET": "@faunadb-secret",
-    "STRIPE_SECRET": "@live-stripe-key"
+    "STRIPE_SECRET": "@live-stripe-key",
+    "SLACK_SIGNING_SECRET": "@slack-signing-secret"
   },
   "routes": [
     {

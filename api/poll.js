@@ -13,10 +13,13 @@ const {
   ephemeralMessage,
   teamIsExpired,
   addFooterToMessage,
+  verifySlackRequest,
 } = require("./util");
 
 const faunadb = require("faunadb");
 const q = faunadb.query;
+
+const slackSigningSecret = process.env.SLACK_SIGNING_SECRET
 
 const client = new faunadb.Client({ secret: process.env.FAUNA_SECRET });
 
@@ -39,7 +42,8 @@ const createPoll = (poll) => {
   )
 }
 
-const commandMessage = ({ command, args }) => {
+const commandMessage = async ({ command, args, req }) => {
+
   if (command === "help" || command === '') {
     return addFooterToMessage({
       response_type: "ephemeral",
@@ -74,12 +78,19 @@ const unexpectedError = "An unexpected error has occured";
 
 module.exports = async (req, res) => {
   try {
+
     const body = await parseUrlEncode(req);
-    console.log(body)
+
+    const slackVerification = await verifySlackRequest({ slackSigningSecret, req })
+    if (!slackVerification.success) {
+      return ephemeralMessage("Could not verify this message originated from slack. Please try again.")
+    }
+
+
     const { question, options, anonymous, command, args } = parseMessage(body.text);
 
     if (command || command === '') {
-      send(res, 200, commandMessage({ command, args}))
+      send(res, 200, await commandMessage({ command, args, req }))
       return;
     }
 

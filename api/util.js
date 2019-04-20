@@ -1,5 +1,7 @@
 const uuid = require('uuid/v4');
 const partitionAll = require('partition-all');
+const crypto = require('crypto');
+const timingSafeCompare = require('tsscmp')
 const faunadb = require("faunadb");
 const q = faunadb.query;
 
@@ -304,10 +306,10 @@ const fetchStripeSubscription = async ({ stripe, stripe_id }) => {
 
 const subscribe = async ({ customer, client, plan, stripe, teamRef, stripe_id }) => {
   const subscription = customer.subscriptions.data[0]
-  if (subscription) {
+  const subPlan = subscription && subscription.items.data[0].plan.id;
+  if (subscription && subPlan && subPlan !== plan) {
     await stripe.subscriptionItems.update(subscription.items.data[0].id, {
       plan,
-      trial_from_plan: true,
     })
     return subscription;
   }
@@ -315,11 +317,46 @@ const subscribe = async ({ customer, client, plan, stripe, teamRef, stripe_id })
   const newSubscription = await stripe.subscriptions.create({
     customer: stripe_id,
     items: [{plan}],
-    trial_from_plan: true,
+    trial_from_plan: true
   })
 
   await client.query(setPlan({ teamRef, plan }))
   return newSubscription;
+}
+
+const verifySlackMessage = ({ slackSigningSecret, requestSignature, timestamp, body }) => {
+  const currentTime = Math.floor(Date.now() / 1000)
+  const fiveMinutes = 60 * 5
+  if (Math.abs(currentTime - timestamp) > fiveMinutes) {
+    return {
+      success: false, 
+      reason: "InvalidTimeError",
+    };
+  }
+
+  const [version, hash] = requestSignature.split("=");
+  const hmac = crypto.createHmac("sha256", slackSigningSecret);
+  hmac.update(`${version}:${timestamp}:${body}`);
+  const digest =  hmac.digest('hex');
+  if (!timingSafeCompare(hash, digest)) {
+    return {
+      success: false,
+      hash: hash,
+      hmac: digest,
+      reason: "InvalidSignature",
+    }
+  }
+
+  return {
+    success: true
+  }
+}
+
+const verifySlackRequest = async ({ slackSigningSecret, req}) => {
+  const body = await req.rawBody;
+  const timestamp = req.headers["x-slack-request-timestamp"];
+  const requestSignature = req.headers["x-slack-signature"];
+  return verifySlackMessage({ body, timestamp, requestSignature, slackSigningSecret })
 }
 
 module.exports = {
@@ -345,4 +382,5 @@ module.exports = {
   upsert,
   refByIndex,
   subscribe,
+  verifySlackRequest,
 }
