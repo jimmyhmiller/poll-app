@@ -15,6 +15,8 @@ import {
 } from "react-stripe-elements";
 import fetch from 'isomorphic-unfetch'
 import dateformat  from 'dateformat'
+import ReactModal from "react-modal";
+import { useModal, ModalProvider } from "react-modal-hook";
 
 const GlobalStyles = () =>
   <style jsx global>{`
@@ -96,6 +98,25 @@ const GlobalStyles = () =>
       white-space: nowrap;
     }
 
+    .modal {
+      position: absolute;
+      top: 30vh;
+      left: 27vw;
+      right: 26vw;
+      height:300px;
+      background-color: white;
+      border-radius: 5px;
+    }
+
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0,0,0,0.4);
+    }
+
 
   `}
   </style>
@@ -164,7 +185,7 @@ const Card = ({ children, accentColor, style={}, padding=20 }) =>
     </Flex>
   </div>
 
-const Button = ({ children, color, filled, text, onClick = ()=>{} }) => {
+const Button = ({  color, filled, text, onClick = ()=>{} }) => {
   const backgroundColor = filled ? color : "white";
   const hoverColor = filled
     ? tinycolor(backgroundColor)
@@ -475,7 +496,7 @@ const useInput = (initialState) => {
   }
 }
 
-const CheckoutForm = injectStripe(({ price, planName, stripe, plan, setSubscribed, setHasCard }) => {
+const CheckoutForm = injectStripe(({ price, planName, stripe, plan, setSubscribed, setHasCard, onSuccess }) => {
   const name = useInput("");
   const email = useInput("");
 
@@ -500,6 +521,7 @@ const CheckoutForm = injectStripe(({ price, planName, stripe, plan, setSubscribe
 
       setSubscribed(plan)
       setHasCard(true)
+      onSuccess()
     }
 
   }, [name.value, email.value, stripe, plan])
@@ -517,7 +539,7 @@ const CheckoutForm = injectStripe(({ price, planName, stripe, plan, setSubscribe
               type="email"
               placeholder="janedoe@example.com"
               required=""
-              autocomplete="email" />
+              autoComplete="email" />
           </Flex>
         </fieldset>
         <fieldset style={{padding: 5}}>
@@ -561,7 +583,7 @@ const CheckoutForm = injectStripe(({ price, planName, stripe, plan, setSubscribe
 const DemoImage = () =>
   <img style={{width: 253, height: 500, padding: "0 10px"}} src="/static/pixel-white.png" />
 
-const Stripe = ({ price, planName, plan, setSubscribed, setHasCard }) => {
+const Stripe = ({ price, planName, plan, setSubscribed, setHasCard, onSuccess }) => {
   if (!process.browser) {
     return null;
   }
@@ -569,6 +591,7 @@ const Stripe = ({ price, planName, plan, setSubscribed, setHasCard }) => {
     <StripeProvider apiKey="pk_live_a6qh8FdsITIRlQOf4U7CvyjD">
       <Elements>
         <CheckoutForm
+          onSuccess={onSuccess}
           setHasCard={setHasCard}
           price={price}
           planName={planName}
@@ -695,7 +718,7 @@ const ActiveSubscription = ({ subscribed, selected, subscription, setSubscribed 
   )
 }
 
-const SecondaryPanel = ({ selected, subscribed, subscription, setSubscribed, hasCard, setHasCard }) => {
+const SecondaryPanel = ({ selected, subscribed, subscription, setSubscribed, hasCard, setHasCard, onSuccess }) => {
 
   const currentShown = selected || subscribed;
   const planName = nameByPlan[currentShown];
@@ -703,7 +726,7 @@ const SecondaryPanel = ({ selected, subscribed, subscription, setSubscribed, has
 
   if (!subscribed && !selected) {
     return <DemoImage />
-  } else if (hasCard || selected === "poll-app-personal") {
+  } else if (hasCard || selected === "poll-app-personal" || (subscribed === "poll-app-personal" && !selected)) {
     return (
       <ActiveSubscription
         hasCard={hasCard}
@@ -714,7 +737,8 @@ const SecondaryPanel = ({ selected, subscribed, subscription, setSubscribed, has
     )
   } else {
     return (
-      <Stripe 
+      <Stripe
+        onSuccess={onSuccess}
         hasCard={hasCard}
         setHasCard={setHasCard}
         setSubscribed={setSubscribed}
@@ -738,7 +762,56 @@ const AddToSlack = () =>
     />
   </a>
 
-const Main = ({ user, initialSelection }) => {
+
+const CongratsModal = ({ team, onClose }) => {
+  return (
+    <div style={{display:"flex", flexDirection: "column"}}>
+      <div style={{backgroundColor: "rgb(83, 166, 251)", color: "white", padding: 20, borderRadius: "5px 5px 0 0"}}>
+        <h2 style={{margin:0, fontSize: 36}}>Poll App Installed Successfully!</h2>
+      </div>
+      <div style={{padding: 20}}>
+        <p>Thanks for trying out poll app. You can now make polls in the {team.name} Slack. To get started try posting this poll below.</p>
+        <pre style={{backgroundColor:"#f6f8fa", padding: 10}}>
+          <code>
+            /poll "Should we start using polls?" "Yes" "No"
+          </code>
+        </pre>
+        <Container direction="column" justify="center">
+          <div style={{width:130, alignSelf:"center"}}>
+            <Button onClick={onClose} text="Close" color="rgb(83, 166, 251)" />
+          </div>
+        </Container>
+      </div>
+    </div>
+  )
+}
+
+
+const App = ({ user, initialSelection }) => {
+
+  const changeLocation = useCallback(() => {
+    history.replaceState({}, "Poll App", "/")
+  })
+
+  const [showModal, hideModal] = useModal(() => (
+    <ReactModal
+      onRequestClose={() => { hideModal(); changeLocation() }}
+      className="modal"
+      overlayClassName="overlay"
+      isOpen
+    >
+      <CongratsModal
+        onClose={() => { hideModal(); changeLocation() }}
+        team={user.slack && user.slack.team} />
+    </ReactModal>
+  ));
+
+  useEffect(() => {
+    if (initialSelection === "poll-app-personal") {
+      showModal();
+    }
+  }, [])
+
   const [hasCard, setHasCard] = useDevState("setHasCard", user.hasCard);
   const [subscribed , setSubscribed] = useDevState("setSubscribed", user.subscription && user.subscription.plan && user.subscription.plan.id);
   const [selected, setSelected]  = useDevState("setSelected", initialSelection);
@@ -774,6 +847,7 @@ const Main = ({ user, initialSelection }) => {
 
           <Flex direction="column" justify="center" align="center">
             <SecondaryPanel
+              onSuccess={showModal}
               setHasCard={setHasCard}
               hasCard={hasCard}
               setSubscribed={setSubscribed}
@@ -794,10 +868,15 @@ const Main = ({ user, initialSelection }) => {
   )
 }
 
-Main.getInitialProps = async ({ req, query: { selected } }) => {
-  const host = req.headers.host
-  const protocol = host.startsWith("localhost") ? "http" : "https"
 
+const Main = ({ user, initialSelection }) =>
+  <ModalProvider>
+    <App user={user} initialSelection={initialSelection} />
+  </ModalProvider>
+
+Main.getInitialProps = async ({ req, query: { selected } }) => {
+  const host = req.headers["x-forwarded-host"] || req.headers.host
+  const protocol = host.startsWith("localhost") ? "http" : "https"
   const res = await fetch(`${protocol}://${host}/user`, {
     credentials: "include", // polyfill only supports include for cookies
     headers: {
