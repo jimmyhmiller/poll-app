@@ -98,7 +98,17 @@ const GlobalStyles = () =>
       white-space: nowrap;
     }
 
-    .modal {
+    .congrats-modal {
+      position: absolute;
+      top: 30vh;
+      left: 27vw;
+      right: 26vw;
+      height:300px;
+      background-color: white;
+      border-radius: 5px;
+    }
+
+    .info-modal {
       position: absolute;
       top: 30vh;
       left: 27vw;
@@ -770,7 +780,7 @@ const CongratsModal = ({ team, onClose }) => {
         <h2 style={{margin:0, fontSize: 36}}>Poll App Installed Successfully!</h2>
       </div>
       <div style={{padding: 20}}>
-        <p>Thanks for trying out poll app. You can now make polls in the {team.name} Slack. To get started try posting this poll below.</p>
+        <p>Thanks for trying out poll app. You can now make polls in {team && `the ${team.name} `} Slack. To get started try posting this poll below.</p>
         <pre style={{backgroundColor:"#f6f8fa", padding: 10}}>
           <code>
             /poll "Should we start using polls?" "Yes" "No"
@@ -786,17 +796,17 @@ const CongratsModal = ({ team, onClose }) => {
   )
 }
 
-
-const App = ({ user, initialSelection }) => {
+const useCongratsModel = () => {
 
   const changeLocation = useCallback(() => {
     history.replaceState({}, "Poll App", "/")
   })
 
+
   const [showModal, hideModal] = useModal(() => (
     <ReactModal
       onRequestClose={() => { hideModal(); changeLocation() }}
-      className="modal"
+      className="congrats-modal"
       overlayClassName="overlay"
       isOpen
     >
@@ -805,10 +815,41 @@ const App = ({ user, initialSelection }) => {
         team={user.slack && user.slack.team} />
     </ReactModal>
   ));
+  return [showModal, hideModal]
+}
+
+
+// Need to actually make there be pictures and stuff. Silly slack requirements.
+
+const useInfoModal = ({ user }) => {
+
+  const [showModal, hideModal] = useModal(() => (
+    <ReactModal
+      onRequestClose={() => { hideModal() }}
+      className="congrats-modal"
+      overlayClassName="overlay"
+      isOpen
+    >
+      More info coming soon
+    </ReactModal>
+  ));
+  return [showModal, hideModal]
+}
+
+const defaultPrevented = (f) => (e) => {
+  e.preventDefault();
+  f();
+}
+
+
+const App = ({ user, initialSelection }) => {
+
+  const [showCongratsModal, _hideCongratsModal] = useCongratsModel({ user });
+  const [showInfoModal, _hideInfoModal] = useInfoModal({ user });
 
   useEffect(() => {
     if (initialSelection === "poll-app-personal") {
-      showModal();
+      showCongratsModal();
     }
   }, [])
 
@@ -835,9 +876,12 @@ const App = ({ user, initialSelection }) => {
                 align="center"
                 text="Poll App" />
             </Flex>
-            <Flex justify="center">
-              <Text secondary align="center" style={{maxWidth: 600}}>
+            <Flex align="center" direction="column">
+              <Text secondary align="center" style={{maxWidth: 600, margin: 0}}>
                 Make and take polls right in Slack. Gather feedback or make decisions without needing to schedule a meeting.
+              </Text>
+              <Text>
+                <a href="#" onClick={defaultPrevented(showInfoModal)}>More Info</a>
               </Text>
             </Flex>
             <Flex justify="center">
@@ -847,7 +891,7 @@ const App = ({ user, initialSelection }) => {
 
           <Flex direction="column" justify="center" align="center">
             <SecondaryPanel
-              onSuccess={showModal}
+              onSuccess={showCongratsModal}
               setHasCard={setHasCard}
               hasCard={hasCard}
               setSubscribed={setSubscribed}
@@ -877,14 +921,19 @@ const Main = ({ user, initialSelection }) =>
 Main.getInitialProps = async ({ req, query: { selected } }) => {
   const host = req.headers["x-forwarded-host"] || req.headers.host
   const protocol = host.startsWith("localhost") ? "http" : "https"
-  const res = await fetch(`${protocol}://${host}/user`, {
-    credentials: "include", // polyfill only supports include for cookies
-    headers: {
-      cookie: req.headers.cookie // Stupid hack around server side rendering stuff
-    }
-  });
-  const user = await res.json();
-  return { user, initialSelection: selected };
+  try {
+    const res = await fetch(`${protocol}://${host}/user`, {
+      credentials: "include", // polyfill only supports include for cookies
+      headers: {
+        cookie: req.headers.cookie // Stupid hack around server side rendering stuff
+      }
+    });
+    const user = await res.json();
+    return { user, initialSelection: selected };
+
+  } catch (e) {
+    return { user: {loggedIn: false }, initialSelection: selected }
+  }
 };
 
 export default Main
