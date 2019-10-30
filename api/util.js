@@ -192,6 +192,7 @@ const currentCount = (poll) => {
 }
 
 const maxCount = (poll) => {
+
   return q.Select(
     ["data", "maxCount"],
     q.Get(poll.data.team),
@@ -200,7 +201,7 @@ const maxCount = (poll) => {
 }
 
 const setExpirationDate = (date, team_id) => {
-  const teamRef = q.Select("ref", q.Get(matchIndex("teams-by-team-id", team_id)));
+  const teamRef = q.Select("ref", q.Get(matchIndex("test-teams-by-team-id", team_id)));
   return (
     q.Update(teamRef, {
       data: {
@@ -252,13 +253,13 @@ const getRefByIndex = (index, value) =>
   q.Select("ref", q.Get(q.Match(q.Index(index), value)))
 
 const createTeamIfNotExists = (team_id) => {
-  const teamRef = matchIndex("teams-by-team-id", team_id);
+  const teamRef = matchIndex("test-teams-by-team-id", team_id);
   return createIfNotExists("teams", teamRef, { data: { team_id }})
 }
 
 
 const userInfoByAccessToken = ({ access_token }) => {
-  return q.Get(matchIndex("get-user-by-access-token", access_token))
+  return q.Get(matchIndex("test-get-user-by-access-token", access_token))
 }
 
 const teamInfoByAccessToken = ({ access_token }) => {
@@ -266,12 +267,15 @@ const teamInfoByAccessToken = ({ access_token }) => {
 }
 
 const upsertUserAccessToken = ({ team_id, user_id, slack_access_token, access_token }) => {
-  const team = refByIndex("teams-by-team-id", team_id);
-  const userRef = refByIndex("users-by-user-id", user_id);
-  return q.Do(
-    createIfNotExists("teams", team, { data: { team_id }}),
-    upsert("users", userRef, { data: { user_id, slack_access_token, access_token, team: q.Select("ref", q.Get(team)) }}),
-    q.Get(team)
+  const team = refByIndex("test-teams-by-team-id", team_id);
+  const userRef = refByIndex("test-users-by-user-id", user_id);
+  return (
+    q.Let({team_ref: createIfNotExists("teams", team, { data: { team_id }})},
+       q.Do(
+          upsert("users", userRef, { data: { user_id, slack_access_token, access_token, team: q.Var("team_ref")}}),
+          q.Get(q.Var("team_ref"))
+      )
+    )
   )
 }
 
@@ -279,7 +283,7 @@ const buildPoll = ({question, options, body, anonymous}) => {
   return {
     data: {
       callback_id: uuid(),
-      team: getRefByIndex("teams-by-team-id", body.team_id),
+      team: getRefByIndex("test-teams-by-team-id", body.team_id),
       anonymous,
       question,
       options,

@@ -49,11 +49,12 @@ module.exports = async (req, res) => {
       send(res, 200, {loggedIn: false})
       return;
     }
-
+    console.log("getting user info")
     const [{ data: { slack_access_token }}, { data: { stripe_id }}] = await Promise.all([
       client.query(userInfoByAccessToken({ access_token })),
       client.query(teamInfoByAccessToken({ access_token })),
     ])
+
 
     const [slack, customerInfo] = await Promise.all([
       fetchSlackInfo({ slack_access_token }),

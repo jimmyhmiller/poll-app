@@ -61,6 +61,11 @@ const GlobalStyles = () =>
     }
     a {
       text-decoration: none;
+      color: rgb(83, 166, 251);
+    }
+
+    a::visited {
+      color: rgb(83, 166, 251);
     }
 
 
@@ -110,12 +115,13 @@ const GlobalStyles = () =>
 
     .info-modal {
       position: absolute;
-      top: 30vh;
-      left: 27vw;
-      right: 26vw;
-      height:300px;
+      top: 20vh;
+      left: 20vw;
+      right: 20vw;
+      height:70vh;
       background-color: white;
       border-radius: 5px;
+      padding: 20px;
     }
 
     .overlay {
@@ -125,6 +131,17 @@ const GlobalStyles = () =>
       right: 0;
       bottom: 0;
       background-color: rgba(0,0,0,0.4);
+    }
+
+    blockquote {
+      border-left: 0.25em solid rgb(223, 226, 229);
+      margin-left: 20px;
+      padding-left: 20px;
+    }
+
+    code {
+      background-color: rgba(27, 31, 35, 0.05);
+      padding: 0.2em 0.4em;
     }
 
 
@@ -796,7 +813,7 @@ const CongratsModal = ({ team, onClose }) => {
   )
 }
 
-const useCongratsModel = () => {
+const useCongratsModel = ({ user }) => {
 
   const changeLocation = useCallback(() => {
     history.replaceState({}, "Poll App", "/")
@@ -826,11 +843,23 @@ const useInfoModal = ({ user }) => {
   const [showModal, hideModal] = useModal(() => (
     <ReactModal
       onRequestClose={() => { hideModal() }}
-      className="congrats-modal"
+      className="info-modal"
       overlayClassName="overlay"
       isOpen
     >
-      More info coming soon
+      <div style={{height: "100%", overflowY:"scroll"}}>
+        <h3>How To Use:</h3>
+        <p>Once you have poll app installed you can see make a poll using the <code>/poll</code> command.</p>
+        <blockquote>
+        /poll "Favorite food?" "Pizza" "Ice Cream" "Other"
+        </blockquote>
+        <img style={{width: 700}} src="/static/poll-example1.png" />
+        <p>To make an anonymous poll just add <code>anonymous</code> to the end of your poll. Then, names will not show up when people vote.</p>
+        <blockquote>
+        /poll "Who has the whitest sneakers" "Pam Beesly" "Dwight Schrute" "Michael Scott" anonymous
+        </blockquote>
+        <img style={{width: 700}} src="/static/poll-example2.png" />
+      </div>
     </ReactModal>
   ));
   return [showModal, hideModal]

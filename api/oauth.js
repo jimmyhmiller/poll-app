@@ -24,15 +24,18 @@ const clientInfo = {
 }
 
 const upsertUserAndTeamInfo = async ({ team_id, user_id, slack_access_token, access_token }) => {
+  console.log("upserting");
   const teamInfo = await client.query(
     upsertUserAccessToken({ team_id, user_id, slack_access_token, access_token })
   );
 
   if (teamInfo.data.stripe_id) {
+    console.log("Found user");
     return teamInfo
   }
 
   const { id: stripe_id } = await stripe.customers.create()
+  console.log("Updating with stripe info");
   const response = await client.query(q.Update(teamInfo.ref, { data: { stripe_id }}))
 
   return response
@@ -69,9 +72,11 @@ module.exports = async (req, res) => {
     const slack_access_token = json.access_token;
     const access_token = uuid();
 
+    console.log(team_id, user_id)
     const teamInfo = await upsertUserAndTeamInfo({ team_id, user_id, slack_access_token, access_token })
 
     if (selected === "poll-app-personal") {
+      console.log("Personal, so subscribing now")
       const customer = await stripe.customers.retrieve(teamInfo.data.stripe_id)
 
       await subscribe({
