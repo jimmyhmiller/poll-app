@@ -172,6 +172,13 @@ const matchIndex = (index, value) =>
 const today = () => new Date().toISOString().substring(0, 10)
 
 
+const addDaysEpoch = (date, days) => {
+  // the fact that dates are mutable is terrible
+  const newDate = new Date(date);
+  newDate.setDate(newDate.getDate() + days);
+  return Math.floor(newDate.valueOf()/1000);
+}
+
 const addDays = (date, days) => {
   // the fact that dates are mutable is terrible
   const newDate = new Date(date);
@@ -306,15 +313,27 @@ const fetchStripeSubscription = async ({ stripe, stripe_id }) => {
   return customer.subscriptions.data[0]
 }
 
-
+const addTrialInfo = async ({stripe, subscription, fromPlan, toPlan}) => {
+  if (fromPlan === "poll-app-personal" && toPlan === "poll-app-basic" && !subscription.metadata.has_had_trial) {
+    await stripe.subscriptions.update(subscription.id, {
+      trial_end: addDaysEpoch(new Date(), 30),
+      metadata: {
+        has_had_trial: true
+      }
+    })
+  }
+}
 
 const subscribe = async ({ customer, client, plan, stripe, teamRef, stripe_id }) => {
   const subscription = customer.subscriptions.data[0]
-  const subPlan = subscription && subscription.items.data[0].plan.id;
-  if (subscription && subPlan && subPlan !== plan) {
+  const fromPlan = subscription && subscription.items.data[0].plan.id;
+  if (subscription && fromPlan && fromPlan !== plan) {
+    await addTrialInfo({stripe, subscription, fromPlan, toPlan: plan})
     await stripe.subscriptionItems.update(subscription.items.data[0].id, {
       plan,
+
     })
+    await client.query(setPlan({ teamRef, plan }))
     return subscription;
   }
 
@@ -376,6 +395,7 @@ module.exports = {
   ephemeralMessage,
   setExpirationDate,
   addDays,
+  addDaysEpoch,
   today,
   upsertUserAccessToken,
   userInfoByAccessToken,
