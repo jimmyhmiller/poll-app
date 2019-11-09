@@ -432,6 +432,9 @@ const Header = ({ team }) => {
   return (
     <Flex style={{backgroundColor: "rgb(83, 166, 251)", marginBottom: 20}} direction="row" justify="flex-end">
       <Flex style={{paddingRight: 30}} direction="row" alignSelf="flex-end">
+        <Text href="https://forms.gle/VGoNGnikEiqs6rD86" color="white" size={16}>Contact</Text>
+      </Flex>
+      <Flex style={{paddingRight: 30}} direction="row" alignSelf="flex-end">
         <Text href={loginUrl} color="white" size={16}>Login</Text>
       </Flex>
     </Flex>

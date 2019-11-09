@@ -162,7 +162,7 @@ const createIfNotExists = (className, ref, value) =>
   q.If(q.Not(q.Exists(ref)),
     q.Select("ref", q.Create(q.Class(className), value)),
     q.Do(
-      q.Update(ref, value),
+      q.Update(q.Select("ref", q.Get(ref)), value),
       q.Select("ref", q.Get(ref))))
 
 

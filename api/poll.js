@@ -86,6 +86,7 @@ module.exports = async (req, res) => {
       return ephemeralMessage("Could not verify this message originated from slack. Please try again.")
     }
 
+    console.log(body.text);
 
     const { question, options, anonymous, command, args } = parseMessage(body.text);
 
