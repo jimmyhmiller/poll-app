@@ -66,7 +66,7 @@ const commandMessage = async ({ command, args, req }) => {
       attachments: [
       {
           color: "#53a6fb",
-          title: "Still having trouble?",
+          title: "Need Options and A Question",
           text: "It looks like you only sent a question, but no options for people to select. Try adding your options in quotes after your question like the examples below."
       },
        ...standardHelp,
