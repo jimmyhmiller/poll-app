@@ -42,31 +42,48 @@ const createPoll = (poll) => {
   )
 }
 
+const standardHelp = [
+  {
+    color: "#53a6fb",
+    text: "To use poll app, try one of the commands below."
+  },
+  {
+    color: "#53a6fb",
+    title: "Create a poll.",
+    text: "/poll “Favorite food?” “Pizza” “Ice Cream” “Other”"
+  }, {
+    color: "#53a6fb",
+    title: "Create an anonymous poll.",
+    text: "/poll “Where to eat?” “Home” “Out” anonymous"
+  }]
+
 const commandMessage = async ({ command, args, req }) => {
 
-  if (command === "help" || command === '') {
+  if (command === "NO_OPTIONS") {
     return addFooterToMessage({
       response_type: "ephemeral",
       replace_original: false,
       attachments: [
-        {
+      {
           color: "#53a6fb",
-          text: "To use poll app, try one of the commands below."
-        },
-        {
-          color: "#53a6fb",
-          title: "Create a poll.",
-          text: "/poll “Favorite food?” “Pizza” “Ice Cream” “Other”"
-        }, {
-          color: "#53a6fb",
-          title: "Create an anonymous poll.",
-          text: "/poll “Where to eat?” “Home” “Out” anonymous"
-        }
+          title: "Still having trouble?",
+          text: "It looks like you only sent a question, but no options for people to select. Try adding your options in quotes after your question like the examples below."
+      },
+       ...standardHelp,
       ]
     })
-  } else {
-    return ephemeralMessage(`Command ${command} not found. Try \`/poll help\` for more information.`)
   }
+
+  return addFooterToMessage({
+    response_type: "ephemeral",
+    replace_original: false,
+    attachments: [...standardHelp, {
+        color: "#53a6fb",
+        title: "Still having trouble?",
+        text: "Try using quotes like the examples above do. Quotes help Poll App know what part is a question and which parts are the choices."
+      }
+    ]
+  })
 }
 
 // Ultimately these will be a bit different.
@@ -88,12 +105,18 @@ module.exports = async (req, res) => {
 
     console.log(body.text);
 
-    const { question, options, anonymous, command, args } = parseMessage(body.text);
+    const { question, options, anonymous, args } = parseMessage(body.text);
 
-    if (command || command === '') {
-      send(res, 200, await commandMessage({ command, args, req }))
+    if (question === "help" || question === "" || !question) {
+      send(res, 200, await commandMessage({ command: "help", args, req }))
       return;
     }
+
+    if (options.length === 0) {
+      send(res, 200, await commandMessage({ command: "NO_OPTIONS", args, req }))
+      return;
+    }
+
 
     const poll = buildPoll({ question, options, body, anonymous });
     const callback_id = poll.data.callback_id

@@ -55,6 +55,8 @@ module.exports = async (req, res) => {
   try {
     const body = await parseBody(req);
 
+    console.log(body)
+
     const slackVerification = await verifySlackRequest({ slackSigningSecret, req })
     if (!slackVerification.success) {
       return ephemeralMessage("Could not verify this message originated from slack. Please try again.")
@@ -69,7 +71,7 @@ module.exports = async (req, res) => {
     send(res, 200, buildResponse(updatedPoll));
 
   } catch (e) {
-
+    console.error(e)
     send(res, 200, {
       text: `Failed to get body ${e.message}`,
       response_type: "ephemeral",

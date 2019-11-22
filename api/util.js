@@ -11,25 +11,42 @@ const cleanString = (str) =>
 const removeSmartQuotes = (str) =>
   str.replace(/(\u201C|\u201D)/g, '"')
 
+
+const matchAll = (text, regex) => {
+  // This is a little crazy. But people don't seem to be able to understand
+  // quoting things and the /g flag on regexes doesn't do what you want.
+  if (text.length === 0) {
+    return []
+  }
+  const match = text.match(regex)
+  if (match && match[0]) {
+    return [match[0]].concat(matchAll(text.substring(match[0].length).trim(), regex))
+  }
+  return [];
+}
+
+const anonymousAndOptions = (options) => {
+  if (options[options.length - 1] && options[options.length - 1].includes("anonymous")) {
+    return {
+      anonymous: true,
+      options: options.slice(0, options.length - 1)
+    }
+  }
+  return {
+    anonymous: false,
+    options,
+  }
+}
+
 const parseMessage = (text="") => {
 
   // This code is super ugly.
   const cleanedText = removeSmartQuotes(text)
-  const [question, ...options] = (cleanedText
-    .match(/".*?"/g) || [])
+  const [question, ...initialOptions] = matchAll(cleanedText,
+    /(".+?")|(.+?\?)|(.+? )|(.+$)/)
     .map(cleanString);
 
-  if (!question) {
-    const [command, ...args] = cleanedText.split(" ")
-    return {
-      command,
-      args,
-    }
-  }
-
-  const anonymous = cleanedText
-    .substring(cleanedText.lastIndexOf("\""))
-    .includes("anonymous")
+  const { anonymous, options } = anonymousAndOptions(initialOptions)
 
   return {
     question,
@@ -305,7 +322,7 @@ const monthlyCounts = {
   "poll-app-enterprise": 10000,
 }
 
-const setPlan = ({ teamRef, plan }) => 
+const setPlan = ({ teamRef, plan }) =>
   q.Update(teamRef, {data: {maxCount: monthlyCounts[plan], expirationDate: null}})
 
 const fetchStripeSubscription = async ({ stripe, stripe_id }) => {
@@ -352,7 +369,7 @@ const verifySlackMessage = ({ slackSigningSecret, requestSignature, timestamp, b
   const fiveMinutes = 60 * 5
   if (Math.abs(currentTime - timestamp) > fiveMinutes) {
     return {
-      success: false, 
+      success: false,
       reason: "InvalidTimeError",
     };
   }
