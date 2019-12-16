@@ -1,0 +1,163 @@
+Incompletely listing of the fauna schema
+
+
+Functions:
+{
+  "data": [
+    {
+      "ref": Ref(Ref("functions"), "remove-vote"),
+      "ts": 1574397586720000,
+      "name": "remove-vote",
+      "body": Query(Lambda(["options", "voter"], Map(Var("options"), Lambda("option", Let({votes: Select(["votes"], Var("option")), value: Select(["value"], Var("option")), index: Select(["index"], Var("option"))}, {votes: Filter(Var("votes"), Lambda("vote", Not(Equals(Var("voter"), Var("vote"))))), value: Var("value"), index: Var("index")})))))
+    },
+    {
+      "ref": Ref(Ref("functions"), "add-vote"),
+      "ts": 1574393648600000,
+      "name": "add-vote",
+      "body": Query(Lambda(["options", "voter", "position"], Map(Var("options"), Lambda("option", Let({index: Select(["index"], Var("option")), votes: Select(["votes"], Var("option")), value: Select(["value"], Var("option"))}, {value: Var("value"), index: Var("index"), votes: If(Equals(Var("index"), Var("position")), Append(Var("votes"), [Var("voter")]), Var("votes"))})))))
+    },
+    {
+      "ref": Ref(Ref("functions"), "vote"),
+      "ts": 1574393452800000,
+      "name": "vote",
+      "body": Query(Lambda(["callback-id", "position", "voter"], Let({poll: Get(Match(Index("poll-by-callback"), Var("callback-id"))), ref: Select(["ref"], Var("poll")), options: Select(["data", "options"], Var("poll")), removed: Call(Function("remove-vote"), Var("options"), Var("voter")), added: Call(Function("add-vote"), Var("removed"), Var("voter"), Var("position"))}, Update(Var("ref"), {data: {options: Var("added")}}))))
+    },
+  ]
+}
+
+{
+  "data":
+    {
+      "ref": Index("poll-by-callback"),
+      "ts": 1572462448405000,
+      "active": true,
+      "partitions": 1,
+      "name": "poll-by-callback",
+      "source": Collection("polls"),
+      "terms": [
+        {
+          "field": [
+            "data",
+            "callback_id"
+          ]
+        }
+      ],
+      "values": [
+        {
+          "field": [
+            "data",
+            "question"
+          ]
+        },
+        {
+          "field": [
+            "data",
+            "anonymous"
+          ]
+        },
+        {
+          "field": [
+            "data",
+            "options"
+          ]
+        }
+      ],
+      "unique": true
+    },
+    {
+      "ref": Index("test-users-by-user-id"),
+      "ts": 1572462291460000,
+      "active": true,
+      "serialized": true,
+      "name": "test-users-by-user-id",
+      "unique": true,
+      "source": Collection("users"),
+      "terms": [
+        {
+          "field": [
+            "data",
+            "user_id"
+          ]
+        }
+      ],
+      "values": [
+        {
+          "field": [
+            "ref"
+          ]
+        }
+      ],
+      "partitions": 8
+    },
+    {
+      "ref": Index("test-teams-by-team-id"),
+      "ts": 1572463175440000,
+      "active": true,
+      "serialized": true,
+      "name": "test-teams-by-team-id",
+      "unique": true,
+      "source": Collection("teams"),
+      "terms": [
+        {
+          "field": [
+            "data",
+            "team_id"
+          ]
+        }
+      ],
+      "values": [
+        {
+          "field": [
+            "ref"
+          ]
+        }
+      ],
+      "partitions": 8
+    },
+    {
+      "ref": Index("test-get-user-by-access-token"),
+      "ts": 1572463871930000,
+      "active": true,
+      "serialized": true,
+      "name": "test-get-user-by-access-token",
+      "unique": true,
+      "source": Collection("users"),
+      "terms": [
+        {
+          "field": [
+            "data",
+            "access_token"
+          ]
+        }
+      ],
+      "values": [],
+      "partitions": 8
+    }
+  ]
+}
+
+{
+  "data": [
+    {
+      "ref": Collection("teams"),
+      "ts": 1544153815777996,
+      "history_days": 30,
+      "name": "teams"
+    },
+    {
+      "ref": Collection("polls"),
+      "ts": 1545027414576398,
+      "history_days": 30,
+      "name": "polls"
+    },
+    {
+      "ref": Collection("users"),
+      "ts": 1554163903240000,
+      "name": "users"
+    }
+  ]
+}
+
+
+
+

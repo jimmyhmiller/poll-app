@@ -1,7 +1,7 @@
 require('dotenv').config();
 const { send } = require('micro');
 const parseUrlEncode = require('urlencoded-body-parser');
-const { buildPollMessage, verifySlackRequest } = require('./util');
+const { buildPollMessage, verifySlackRequest, ephemeralMessage } = require('./util');
 
 const faunadb = require("faunadb");
 const q = faunadb.query;
