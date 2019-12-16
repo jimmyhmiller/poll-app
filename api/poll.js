@@ -126,6 +126,7 @@ module.exports = async (req, res) => {
     if (action === "created") {
       send(res, 200, buildPollMessage({ question, options, anonymous, callback_id }));
     } else if (action === "overLimit") {
+      console.log("Over limit!");
       send(res, 200, ephemeralMessage(overLimitMessage))
     } else if (action === "expired") {
       send(res, 200, ephemeralMessage(expiredMessage))

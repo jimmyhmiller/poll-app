@@ -365,30 +365,37 @@ const subscribe = async ({ customer, client, plan, stripe, teamRef, stripe_id })
 }
 
 const verifySlackMessage = ({ slackSigningSecret, requestSignature, timestamp, body }) => {
-  const currentTime = Math.floor(Date.now() / 1000)
-  const fiveMinutes = 60 * 5
-  if (Math.abs(currentTime - timestamp) > fiveMinutes) {
-    return {
-      success: false,
-      reason: "InvalidTimeError",
-    };
-  }
-
-  const [version, hash] = requestSignature.split("=");
-  const hmac = crypto.createHmac("sha256", slackSigningSecret);
-  hmac.update(`${version}:${timestamp}:${body}`);
-  const digest =  hmac.digest('hex');
-  if (!timingSafeCompare(hash, digest)) {
-    return {
-      success: false,
-      hash: hash,
-      hmac: digest,
-      reason: "InvalidSignature",
+  try {
+    const currentTime = Math.floor(Date.now() / 1000)
+    const fiveMinutes = 60 * 5
+    if (Math.abs(currentTime - timestamp) > fiveMinutes) {
+      return {
+        success: false,
+        reason: "InvalidTimeError",
+      };
     }
-  }
 
-  return {
-    success: true
+    const [version, hash] = requestSignature.split("=");
+    const hmac = crypto.createHmac("sha256", slackSigningSecret);
+    hmac.update(`${version}:${timestamp}:${body}`);
+    const digest =  hmac.digest('hex');
+    if (!timingSafeCompare(hash, digest)) {
+      return {
+        success: false,
+        hash: hash,
+        hmac: digest,
+        reason: "InvalidSignature",
+      }
+    }
+
+    return {
+      success: true
+    }
+  } catch (e) {
+    console.log("Slack validation failed", body);
+    return {
+      success: false,
+    }
   }
 }
 
