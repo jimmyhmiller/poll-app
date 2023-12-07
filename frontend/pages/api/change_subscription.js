@@ -1,7 +1,6 @@
-const { send, json } = require("micro");
+
 const cookie = require("cookie");
 
-require('dotenv').config();
 const stripe = require("stripe")(process.env.STRIPE_SECRET);
 const { teamInfoByAccessToken, monthlyCounts, subscribe: subscribeIfNot } = require("./util");
 
@@ -17,7 +16,7 @@ const getAccessToken = (req) =>
 
 
 
-module.exports = async (req, res) => {
+export default async(req, res) => {
 
   try {
     const { plan } = await json(req);
@@ -28,7 +27,7 @@ module.exports = async (req, res) => {
     const customer = await stripe.customers.retrieve(stripe_id)
 
     if (plan !== "poll-app-personal" && customer.sources.total_count === 0) {
-      send(res, 400, {error: "Need stripe payment information"})
+      res.status(400).json({error: "Need stripe payment information"})
       return;
     }
 
@@ -36,10 +35,10 @@ module.exports = async (req, res) => {
 
     await client.query(q.Update(teamRef, {data: {maxCount: monthlyCounts[plan]}}))
 
-    send(res, 200, { status: "Subscription Updated" });
+    res.status(200).json({ status: "Subscription Updated" });
   } catch (e) {
     console.error(e)
-    send(res, 500, {message: e.message});
+    res.status(500).json({message: e.message});
   }
 }
 

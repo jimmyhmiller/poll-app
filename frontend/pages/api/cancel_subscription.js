@@ -1,7 +1,5 @@
-const { send, json } = require("micro");
 const cookie = require("cookie");
 
-require('dotenv').config();
 const stripe = require("stripe")(process.env.STRIPE_SECRET);
 const { teamInfoByAccessToken, today } = require("./util");
 
@@ -23,7 +21,7 @@ const fetchStripeSubscription = async ({ stripe_id }) => {
 
 
 
-module.exports = async (req, res) => {
+export default async(req, res) => {
 
   try {
 
@@ -39,9 +37,9 @@ module.exports = async (req, res) => {
 
     await client.query(q.Update(teamRef, {data: {expirationDate: today()}}))
 
-    send(res, 200, { status: "unsubscribed" });
+    res.status(200).json({ status: "unsubscribed" });
   } catch (e) {
     console.error(e)
-    send(res, 500, {message: e.message});
+    res.status(500).json({message: e.message})
   }
 }

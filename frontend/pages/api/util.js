@@ -1,4 +1,4 @@
-const uuid = require('uuid/v4');
+import { v4 as uuid } from 'uuid';
 const partitionAll = require('partition-all');
 const crypto = require('crypto');
 const timingSafeCompare = require('tsscmp')

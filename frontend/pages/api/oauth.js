@@ -1,10 +1,8 @@
-require('dotenv').config();
+
 const axios = require("axios");
 const url = require('url');
-const uuid = require('uuid/v4');
+import { v4 as uuid } from 'uuid';
 const querystring = require('querystring');
-const redirect = require('micro-redirect');
-const { send } = require('micro');
 const cookie = require('cookie');
 const { createTeamIfNotExists, upsertUserAccessToken, subscribe } = require('./util');
 const stripe = require("stripe")(process.env.STRIPE_SECRET);
@@ -43,7 +41,7 @@ const upsertUserAndTeamInfo = async ({ team_id, user_id, slack_access_token, acc
 }
 
 // Copied from slack tutorial, needs clean up
-module.exports = async (req, res) => {
+export default async(req, res) => {
 
   try {
     const { code, selected } = querystring.parse(url.parse(req.url).query);
@@ -62,7 +60,7 @@ module.exports = async (req, res) => {
 
     if (!json.ok) {
       console.error(json)
-      send(res, 400, "Error encountered.")
+      res.status(400).json("Error encountered.")
       return ;
     }
 
@@ -96,13 +94,13 @@ module.exports = async (req, res) => {
     }));
     
     if (selected) {
-      redirect(res, 302, `/?selected=${selected}`);
+      res.redirect(302, `/?selected=${selected}`)
     } else {
-      redirect(res, 302, "/");
+      res.redirect(302, "/");
     }
   }
   catch(e) {
     console.error(e)
-    send(res, 500, {message: e.message});
+    res.status(500).json({message: e.message});
   }
 }

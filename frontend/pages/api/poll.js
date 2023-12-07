@@ -1,5 +1,4 @@
-require('dotenv').config();
-const { send } = require('micro');
+
 const parseUrlEncode = require('urlencoded-body-parser');
 
 const {
@@ -93,10 +92,12 @@ const expiredMessage = "Your account has expired. Please go to settings to react
 const noPlanMessage = "Be sure to choose a plan by clicking on the poll-app settings below."
 const unexpectedError = "An unexpected error has occured";
 
-module.exports = async (req, res) => {
+export default async(req, res) => {
   try {
 
+
     const body = await parseUrlEncode(req);
+    console.log(body);
 
     const slackVerification = await verifySlackRequest({ slackSigningSecret, req })
     if (!slackVerification.success) {
@@ -108,12 +109,12 @@ module.exports = async (req, res) => {
     const { question, options, anonymous, args } = parseMessage(body.text);
 
     if (question === "help" || question === "" || !question) {
-      send(res, 200, await commandMessage({ command: "help", args, req }))
+      res.status(200).json(await commandMessage({ command: "help", args, req }))
       return;
     }
 
     if (options.length === 0) {
-      send(res, 200, await commandMessage({ command: "NO_OPTIONS", args, req }))
+      res.status(200).json(await commandMessage({ command: "NO_OPTIONS", args, req }))
       return;
     }
 
@@ -124,24 +125,31 @@ module.exports = async (req, res) => {
     const action = await client.query(createPoll(poll));
 
     if (action === "created") {
-      send(res, 200, buildPollMessage({ question, options, anonymous, callback_id }));
+      res.status(200).json(buildPollMessage({ question, options, anonymous, callback_id }));
     } else if (action === "overLimit") {
       console.log("Over limit!");
-      send(res, 200, ephemeralMessage(overLimitMessage))
+      res.status(200).json(ephemeralMessage(overLimitMessage))
     } else if (action === "expired") {
-      send(res, 200, ephemeralMessage(expiredMessage))
+      res.status(200).json(ephemeralMessage(expiredMessage))
     } else if (action === "noPlan") {
-      send(res, 200, ephemeralMessage(noPlanMessage))
+      res.status(200).json(ephemeralMessage(noPlanMessage))
     } else {
-      send(res, 200, ephemeralMessage(unexpectedError))
+      res.status(200).json(ephemeralMessage(unexpectedError))
     }
 
   } catch (e) {
     console.error(e);
     if (e.message === "instance not found") {
-      send(res, 200, ephemeralMessage("Be sure you have an account by clicking the settings link below."))
+      res.status(200).json(ephemeralMessage("Be sure you have an account by clicking the settings link below."))
       return;
     }
-    send(res, 200, ephemeralMessage(`Error Occurred ${e.message}\n${e.stack}`))
+    res.status(200).json(ephemeralMessage(`Error Occurred ${e.message}\n${e.stack}`))
   }
 };
+
+
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+}

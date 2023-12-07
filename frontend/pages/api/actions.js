@@ -1,5 +1,3 @@
-require('dotenv').config();
-const { send } = require('micro');
 const parseUrlEncode = require('urlencoded-body-parser');
 const { buildPollMessage, verifySlackRequest, ephemeralMessage } = require('./util');
 
@@ -51,7 +49,7 @@ const deleteMessage = ({
   replace_original: true,
 })
 
-module.exports = async (req, res) => {
+export default async (req, res) => {
   try {
     const body = await parseBody(req);
 
@@ -63,16 +61,16 @@ module.exports = async (req, res) => {
     }
 
     if (body.actions[0].value === "delete-poll") {
-      send(res, 200, deleteMessage)
+      res.status(200).json(deleteMessage)
       return;
     }
 
     const updatedPoll = await vote(getVoteData(body))
-    send(res, 200, buildResponse(updatedPoll));
+    res.status(200).json(buildResponse(updatedPoll));
 
   } catch (e) {
     console.error(e)
-    send(res, 200, {
+    res.status(200).json({
       text: `Failed to get body ${e.message}`,
       response_type: "ephemeral",
       replace_original: false
@@ -80,4 +78,10 @@ module.exports = async (req, res) => {
 
   }
 };
+
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+}
 

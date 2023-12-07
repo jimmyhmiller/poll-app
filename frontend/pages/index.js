@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback, useReducer } from "react";
 import PropTypes from "prop-types";
 import Head from 'next/head'
+import Script from 'next/script';
 import tinycolor from "tinycolor2"
 import queryString from "query-string";
 import cookie from "cookie";
+import fetch from "isomorphic-unfetch";
 import {
   CardElement,
   injectStripe,
@@ -11,12 +13,18 @@ import {
   StripeProvider,
   CardNumberElement,
   CardExpiryElement,
-  CardCVCElement,
-} from "react-stripe-elements";
-import fetch from 'isomorphic-unfetch'
+  CardCvcElement,
+} from "@stripe/react-stripe-js";
 import dateformat  from 'dateformat'
 import ReactModal from "react-modal";
 import { useModal, ModalProvider } from "react-modal-hook";
+import {loadStripe} from '@stripe/stripe-js';
+import {useStripe, useElements} from '@stripe/react-stripe-js';
+import { getUserData } from './api/user';
+
+
+// Create the Stripe object yourself...
+const stripePromise = loadStripe('pk_live_a6qh8FdsITIRlQOf4U7CvyjD');
 
 const GlobalStyles = () =>
   <style jsx global>{`
@@ -526,7 +534,8 @@ const useInput = (initialState) => {
   }
 }
 
-const CheckoutForm = injectStripe(({ price, planName, stripe, plan, setSubscribed, setHasCard, onSuccess }) => {
+const CheckoutForm = ({ price, planName, plan, setSubscribed, setHasCard, onSuccess }) => {
+  const stripe = useStripe();
   const name = useInput("");
   const email = useInput("");
 
@@ -595,7 +604,7 @@ const CheckoutForm = injectStripe(({ price, planName, stripe, plan, setSubscribe
           </div>
           <div style={{width: "50%"}}>
             <label>CVC</label>
-            <CardCVCElement />
+            <CardCvcElement />
           </div>
           </Flex>
         </fieldset>
@@ -608,7 +617,7 @@ const CheckoutForm = injectStripe(({ price, planName, stripe, plan, setSubscribe
       </div>
     </Card>
   )
-})
+}
 
 const DemoImage = () =>
   <img style={{width: 253, height: 500, padding: "0 10px"}} src="/static/pixel-white.png" />
@@ -618,17 +627,15 @@ const Stripe = ({ price, planName, plan, setSubscribed, setHasCard, onSuccess })
     return null;
   }
   return (
-    <StripeProvider apiKey="pk_live_a6qh8FdsITIRlQOf4U7CvyjD">
-      <Elements>
-        <CheckoutForm
-          onSuccess={onSuccess}
-          setHasCard={setHasCard}
-          price={price}
-          planName={planName}
-          plan={plan}
-          setSubscribed={setSubscribed} />
-      </Elements>
-    </StripeProvider>
+    <Elements stripe={stripePromise}>
+      <CheckoutForm
+        onSuccess={onSuccess}
+        setHasCard={setHasCard}
+        price={price}
+        planName={planName}
+        plan={plan}
+        setSubscribed={setSubscribed} />
+    </Elements>
   )
 }
 
@@ -876,6 +883,8 @@ const defaultPrevented = (f) => (e) => {
 
 const App = ({ user, initialSelection }) => {
 
+  console.log('user', user)
+
   const [showCongratsModal, _hideCongratsModal] = useCongratsModel({ user });
   const [showInfoModal, _hideInfoModal] = useInfoModal({ user });
 
@@ -895,8 +904,8 @@ const App = ({ user, initialSelection }) => {
         <title>Poll App - Slack polls made easy</title>
         <link rel="icon" type="image/png" href="/static/favicon.png" sizes="196x196" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <script src="https://js.stripe.com/v3/"></script>
       </Head>
+      <Script src="https://js.stripe.com/v3/" />
       <GlobalStyles />
       <Header team={user.slack && user.slack.team} />
       <Container direction="column" justify="center">
@@ -950,22 +959,11 @@ const Main = ({ user, initialSelection }) =>
     <App user={user} initialSelection={initialSelection} />
   </ModalProvider>
 
-Main.getInitialProps = async ({ req, query: { selected } }) => {
-  const host = req.headers["x-forwarded-host"] || req.headers.host
-  const protocol = host.startsWith("localhost") ? "http" : "https"
-  try {
-    const res = await fetch(`${protocol}://${host}/user`, {
-      credentials: "include", // polyfill only supports include for cookies
-      headers: {
-        cookie: req.headers.cookie // Stupid hack around server side rendering stuff
-      }
-    });
-    const user = await res.json();
-    return { user, initialSelection: selected };
 
-  } catch (e) {
-    return { user: {loggedIn: false }, initialSelection: selected }
-  }
-};
+export const getServerSideProps = (async (context) => {
+    const user = await getUserData(context.req);
+    const selected = context.query.selected ?? null;
+    return {props: { user, initialSelection: selected }};
+})
 
 export default Main

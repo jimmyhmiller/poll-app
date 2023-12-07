@@ -1,8 +1,6 @@
 const axios = require("axios");
-const { send } = require("micro");
 const cookie = require("cookie");
 
-require("dotenv").config();
 const { userInfoByAccessToken, teamInfoByAccessToken } = require("./util");
 const stripe = require("stripe")(process.env.STRIPE_SECRET);
 
@@ -19,10 +17,13 @@ const getAccessToken = (req) =>
 
 const fetchStripeSubscription = async ({ stripe_id }) => {
   if (stripe_id) {
-    const customer = await stripe.customers.retrieve(stripe_id)
+    const customer = await stripe.customers.retrieve(stripe_id, {
+      expand: ["subscriptions", "sources"]
+    })
+    console.log(customer);
     return {
       subscription: customer.subscriptions.data[0] || {},
-      hasCard: customer.sources.total_count !== 0
+      hasCard: customer.sources.total_count
     }
   } else {
     return {
@@ -41,33 +42,51 @@ const fetchSlackInfo = async ({ slack_access_token }) => {
   return result.data
 }
 
-module.exports = async (req, res) => {
+export const getUserData = async (req) => {
   try {
     const access_token = getAccessToken(req);
 
+    console.log(access_token);
+
     if (!access_token) {
-      send(res, 200, {loggedIn: false})
-      return;
+      return {loggedIn: false};
     }
     console.log("getting user info")
-    const [{ data: { slack_access_token }}, { data: { stripe_id }}] = await Promise.all([
+    const data = await Promise.all([
       client.query(userInfoByAccessToken({ access_token })),
       client.query(teamInfoByAccessToken({ access_token })),
     ])
 
+
+    console.log(data);
+    const [{ data: { slack_access_token }}, { data: { stripe_id }}] = data;
+
+    console.log("HERE");
 
     const [slack, customerInfo] = await Promise.all([
       fetchSlackInfo({ slack_access_token }),
       fetchStripeSubscription({ stripe_id })
     ]);
 
-    send(res, 200, {
+    return {
       slack,
       ...customerInfo,
       loggedIn: slack.ok
-    })
+    }
   } catch (e) {
-    console.error(e);
-    send(res, 500, {error: "Unexpected error"})
+    console.error(e)
+    return {error: "Unexpected error"}
+  }
+}
+ 
+
+
+export default async (req, res) => {
+
+  let result = getUserData();
+  if (result.error) {
+    res.status(500).json({error: "Unexpected error"})
+  } else {
+    res.status(200).json(result);
   }
 };
