@@ -18,7 +18,7 @@ const getAccessToken = (req) =>
 export default async(req, res) => {
 
   try {
-    const { id, email, plan } = await json(req);
+    const { id, email, plan } = req.body;
 
     const access_token = getAccessToken(req);
     const { ref: teamRef, data: { stripe_id } } = await client.query(teamInfoByAccessToken({ access_token }))
@@ -29,7 +29,9 @@ export default async(req, res) => {
     })
 
 
-    const customer = await stripe.customers.retrieve(stripe_id)
+    const customer = await stripe.customers.retrieve(stripe_id, {
+      expand: ["subscriptions", "sources"]
+    })
     await subscribe({ customer, client, plan, stripe_id, stripe, teamRef })
 
     res.status(200).json({ status: "Created!" });

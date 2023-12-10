@@ -19,12 +19,14 @@ const getAccessToken = (req) =>
 export default async(req, res) => {
 
   try {
-    const { plan } = await json(req);
+    const { plan } = req.body;
 
     const access_token = getAccessToken(req);
     const { ref: teamRef, data: { stripe_id } } = await client.query(teamInfoByAccessToken({ access_token }))
 
-    const customer = await stripe.customers.retrieve(stripe_id)
+    const customer = await stripe.customers.retrieve(stripe_id, {
+      expand: ["subscriptions", "sources"]
+    })
 
     if (plan !== "poll-app-personal" && customer.sources.total_count === 0) {
       res.status(400).json({error: "Need stripe payment information"})

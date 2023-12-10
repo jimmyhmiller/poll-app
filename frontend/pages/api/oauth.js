@@ -75,7 +75,9 @@ export default async(req, res) => {
 
     if (selected === "poll-app-personal") {
       console.log("Personal, so subscribing now")
-      const customer = await stripe.customers.retrieve(teamInfo.data.stripe_id)
+      const customer = await stripe.customers.retrieve(teamInfo.data.stripe_id, {
+        expand: ["subscriptions", "sources"]
+      })
 
       await subscribe({
         stripe,

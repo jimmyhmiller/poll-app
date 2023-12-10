@@ -15,7 +15,9 @@ const getAccessToken = (req) =>
 
 
 const fetchStripeSubscription = async ({ stripe_id }) => {
-  const customer = await stripe.customers.retrieve(stripe_id)
+  const customer = await stripe.customers.retrieve(stripe_id, {
+      expand: ["subscriptions", "sources"]
+    })
   return customer.subscriptions.data[0] || {}
 }
 
@@ -30,7 +32,7 @@ export default async(req, res) => {
 
     const subscription = await fetchStripeSubscription({ stripe_id })
 
-    await stripe.subscriptions.del(subscription.id, { 
+    await stripe.subscriptions.cancel(subscription.id, { 
       invoice_now: true,
       prorate: true,
     })

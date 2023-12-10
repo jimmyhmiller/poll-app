@@ -538,32 +538,39 @@ const CheckoutForm = ({ price, planName, plan, setSubscribed, setHasCard, onSucc
   const stripe = useStripe();
   const name = useInput("");
   const email = useInput("");
+  const elements = useElements();
 
   const submitProps = useSubmitButton("Subscribe", async () => {
-    const { token } = await stripe.createToken({ name: name.value });
+    console.log("waiting!");
+    console.log(elements.getElement("cardNumber"));
+    try {
+      const { token } = await stripe.createToken(elements.getElement("cardNumber"), { name: name.value });
 
-    if (token.id) {
-      await fetch("/subscriptions", {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Accept": "application/json",
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          plan,
-          email: email.value,
-          id: token.id
+      if (token.id) {
+        await fetch("/subscriptions", {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Accept": "application/json",
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            plan,
+            email: email.value,
+            id: token.id
+          })
+
         })
 
-      })
-
-      setSubscribed(plan)
-      setHasCard(true)
-      onSuccess()
+        setSubscribed(plan)
+        setHasCard(true)
+        onSuccess()
+      }
+    } catch (e) {
+      console.error(e)
     }
 
-  }, [name.value, email.value, stripe, plan])
+  }, [name.value, email.value, stripe, plan, elements])
 
   return (
     <Card accentColor="rgb(83 166 251)" style={{width: 253, height: 415, backgroundColor: "#fff", marginTop: 45, marginBottom:35}} padding={0}>
