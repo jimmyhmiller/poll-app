@@ -17,6 +17,7 @@
     "isomorphic-unfetch": "^4.0.2",
     "next": "^14.0.3",
     "partition-all": "^1.0.1",
+    "pg": "^8.15.5",
     "prop-types": "^15.8.1",
     "query-string": "^8.1.0",
     "react": "^18.2.0",
@@ -33,5 +34,9 @@
     "build": "next build",
     "now-build": "next build",
     "start": "next start"
+  },
+  "devDependencies": {
+    "eslint": "9.26.0",
+    "eslint-config-next": "15.3.1"
   }
 }

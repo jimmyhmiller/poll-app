@@ -1,14 +1,8 @@
 const axios = require("axios");
 const cookie = require("cookie");
 
-const { userInfoByAccessToken, teamInfoByAccessToken } = require("./util");
+const { userInfoByAccessTokenSql, teamInfoByAccessTokenSql, getSqlClient, sql } = require("./util");
 const stripe = require("stripe")(process.env.STRIPE_SECRET);
-
-
-const faunadb = require("faunadb");
-const q = faunadb.query;
-
-const client = new faunadb.Client({ secret: process.env.FAUNA_SECRET });
 
 const getAccessToken = (req) =>
   (cookie.parse(req.headers.cookie || '').access_token) ||
@@ -20,7 +14,7 @@ const fetchStripeSubscription = async ({ stripe_id }) => {
     const customer = await stripe.customers.retrieve(stripe_id, {
       expand: ["subscriptions", "sources"]
     })
-    console.log(customer);
+    // console.log(customer);
     return {
       subscription: customer.subscriptions.data[0] || {},
       hasCard: customer.sources.total_count
@@ -43,28 +37,24 @@ const fetchSlackInfo = async ({ slack_access_token }) => {
 }
 
 export const getUserData = async (req) => {
+  const sqlClient = await getSqlClient();
   try {
     const access_token = getAccessToken(req);
 
-    console.log(access_token);
+    // console.log(access_token);
 
     if (!access_token) {
       return {loggedIn: false};
     }
-    console.log("getting user info")
-    const data = await Promise.all([
-      client.query(userInfoByAccessToken({ access_token })),
-      client.query(teamInfoByAccessToken({ access_token })),
-    ])
 
+    const [{rows: [{slack_token_id}]}, {rows: [{stripe_id}]}] = await Promise.all([
+      sqlClient.query(userInfoByAccessTokenSql(access_token)),
+      sqlClient.query(teamInfoByAccessTokenSql(access_token))
+    ]);
 
-    console.log(data);
-    const [{ data: { slack_access_token }}, { data: { stripe_id }}] = data;
-
-    console.log("HERE");
 
     const [slack, customerInfo] = await Promise.all([
-      fetchSlackInfo({ slack_access_token }),
+      fetchSlackInfo({ slack_access_token: slack_token_id }),
       fetchStripeSubscription({ stripe_id })
     ]);
 
@@ -76,6 +66,8 @@ export const getUserData = async (req) => {
   } catch (e) {
     console.error(e)
     return {error: "Unexpected error"}
+  } finally {
+    await sqlClient.release();
   }
 }
  

@@ -1,12 +1,7 @@
 const cookie = require("cookie");
 
 const stripe = require("stripe")(process.env.STRIPE_SECRET);
-const { teamInfoByAccessToken, today } = require("./util");
-
-const faunadb = require("faunadb");
-const q = faunadb.query;
-
-const client = new faunadb.Client({ secret: process.env.FAUNA_SECRET });
+const { teamInfoByAccessTokenSql, today, getSqlClient, sql } = require("./util");
 
 
 const getAccessToken = (req) =>
@@ -18,17 +13,23 @@ const fetchStripeSubscription = async ({ stripe_id }) => {
   const customer = await stripe.customers.retrieve(stripe_id, {
       expand: ["subscriptions", "sources"]
     })
+    console.log(customer);
   return customer.subscriptions.data[0] || {}
 }
 
-
+const setExpirationDateTodaySql = (team_id) => sql`
+  UPDATE team
+  SET expiration_date = ${today()}
+  WHERE team_id = ${team_id};
+  `
 
 export default async(req, res) => {
 
+  const sqlClient = await getSqlClient();
   try {
 
     const access_token = getAccessToken(req);
-    const { ref: teamRef, data: { stripe_id } } = await client.query(teamInfoByAccessToken({ access_token }))
+    const {rows: [{stripe_id, team_id}]} = await sqlClient.query(teamInfoByAccessTokenSql(access_token));
 
     const subscription = await fetchStripeSubscription({ stripe_id })
 
@@ -37,11 +38,13 @@ export default async(req, res) => {
       prorate: true,
     })
 
-    await client.query(q.Update(teamRef, {data: {expirationDate: today()}}))
+    await sqlClient.query(setExpirationDateTodaySql(team_id));
 
     res.status(200).json({ status: "unsubscribed" });
   } catch (e) {
     console.error(e)
     res.status(500).json({message: e.message})
+  } finally {
+    await sqlClient.release();
   }
 }

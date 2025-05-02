@@ -1,45 +1,79 @@
-
+import { v4 as uuid } from 'uuid';
 const parseUrlEncode = require('urlencoded-body-parser');
 
 const {
   parseMessage,
   buildPollMessage,
   buildPoll,
-  buildOptions,
-  incrementMonth,
-  currentCount,
-  maxCount,
   ephemeralMessage,
-  teamIsExpired,
   addFooterToMessage,
   verifySlackRequest,
+  sql,
+  getSqlClient,
+  today,
 } = require("./util");
 
-const faunadb = require("faunadb");
-const q = faunadb.query;
 
 const slackSigningSecret = process.env.SLACK_SIGNING_SECRET
 
-const client = new faunadb.Client({ secret: process.env.FAUNA_SECRET });
 
-const createPoll = (poll) => {
-  return (
-    q.If(q.Equals(maxCount(poll), 0),
-      "noPlan",
-      q.If(q.GTE(currentCount(poll), maxCount(poll)),
-        "overLimit",
-        q.If(teamIsExpired(poll),
-          "expired",
-          q.Do(
-            incrementMonth(poll),
-            q.Create(q.Class("polls"), poll),
-            "created"
-          )
-        )
-      )
-    )
-  )
-}
+const createPollSql = async ({ sqlClient, poll }) => {
+  try {
+    const { callback_id, team, anonymous, question, options } = poll.data;
+    const team_id = team;
+
+    const { rows: [teamRow] } = await sqlClient.query(sql`
+      SELECT max_count, expiration_date
+      FROM team
+      WHERE team_id = ${team_id};
+    `);
+
+    const team_table_id = (await sqlClient.query(sql`
+      SELECT id
+      FROM team
+      WHERE team_id = ${team_id};
+    `)).rows[0].id;
+
+    if (!teamRow || teamRow.max_count === 0) {
+      return "noPlan";
+    }
+
+    const { rows: [countRow] } = await sqlClient.query(sql`
+      SELECT count
+      FROM team_monthly_counts
+      WHERE team_id = ${team_table_id}
+        AND month = date_trunc('month', CURRENT_DATE);
+    `);
+    const currentCount = countRow?.count ?? 0;
+
+    if (currentCount >= teamRow.max_count) {
+      return "overLimit";
+    }
+
+    const todayDate = today();
+    if (teamRow.expiration_date && todayDate > teamRow.expiration_date.toISOString().substring(0, 10)) {
+      return "expired";
+    }
+
+    await sqlClient.query(sql`
+      INSERT INTO team_monthly_counts (team_id, month, count)
+      VALUES (${team_table_id}, date_trunc('month', CURRENT_DATE), 1)
+      ON CONFLICT (team_id, month)
+      DO UPDATE SET count = team_monthly_counts.count + 1;
+    `);
+
+    await sqlClient.query(sql`
+      INSERT INTO poll (team_id, callback_id, info)
+      VALUES (${team_table_id}, ${callback_id}, ${JSON.stringify({ question, options, anonymous })}::jsonb);
+    `);
+
+    return "created";
+  }
+  catch (e) {
+    console.error(e, "SQLERROR: Error creating poll");
+    return "error";
+  }
+};
 
 const standardHelp = [
   {
@@ -93,8 +127,8 @@ const noPlanMessage = "Be sure to choose a plan by clicking on the poll-app sett
 const unexpectedError = "An unexpected error has occured";
 
 export default async(req, res) => {
+  const sqlClient = await getSqlClient();
   try {
-
 
     const body = await parseUrlEncode(req);
     console.log(body);
@@ -119,10 +153,12 @@ export default async(req, res) => {
     }
 
 
+    // TODO: Get rid of this
     const poll = buildPoll({ question, options, body, anonymous });
+
     const callback_id = poll.data.callback_id
 
-    const action = await client.query(createPoll(poll));
+    const action = await createPollSql({ sqlClient, poll });
 
     if (action === "created") {
       res.status(200).json(buildPollMessage({ question, options, anonymous, callback_id }));
@@ -143,7 +179,9 @@ export default async(req, res) => {
       res.status(200).json(ephemeralMessage("Be sure you have an account by clicking the settings link below."))
       return;
     }
-    res.status(200).json(ephemeralMessage(`Error Occurred ${e.message}\n${e.stack}`))
+    res.status(500).json(ephemeralMessage(`Error Occurred ${e.message}\n${e.stack}`))
+  } finally {
+    sqlClient.release();
   }
 };
 

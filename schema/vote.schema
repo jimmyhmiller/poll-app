@@ -1,0 +1,19 @@
+Query(
+  Lambda(
+    ["callback-id", "position", "voter"],
+    Let(
+      {
+        poll: Get(Match(Index("poll-by-callback"), Var("callback-id"))),
+        ref: Select(["ref"], Var("poll")),
+        options: Select(["data", "options"], Var("poll")),
+        removed: Call(Function("remove-vote"), [Var("options"), Var("voter")]),
+        added: Call(Function("add-vote"), [
+          Var("removed"),
+          Var("voter"),
+          Var("position")
+        ])
+      },
+      Update(Var("ref"), { data: { options: Var("added") } })
+    )
+  )
+)

@@ -1,0 +1,42 @@
+
+// Ummmm hopefully I don't use this one
+Query(
+  Lambda(
+    ["name"],
+    Create(Class("teams"), {
+      meta: null,
+      cnt: 1,
+      arr: [
+        {
+          ns: null,
+          name: "data",
+          fqn: "data",
+          _hash: -232669377,
+          cljs$lang$protocol_mask$partition0$: 2153775105,
+          cljs$lang$protocol_mask$partition1$: 4096
+        },
+        {
+          meta: null,
+          cnt: 1,
+          arr: [
+            {
+              ns: null,
+              name: "name",
+              fqn: "name",
+              _hash: 1843675177,
+              cljs$lang$protocol_mask$partition0$: 2153775105,
+              cljs$lang$protocol_mask$partition1$: 4096
+            },
+            Var("name")
+          ],
+          __hash: null,
+          cljs$lang$protocol_mask$partition0$: 16647951,
+          cljs$lang$protocol_mask$partition1$: 139268
+        }
+      ],
+      __hash: null,
+      cljs$lang$protocol_mask$partition0$: 16647951,
+      cljs$lang$protocol_mask$partition1$: 139268
+    })
+  )
+)

@@ -1,12 +1,8 @@
 const parseUrlEncode = require('urlencoded-body-parser');
-const { buildPollMessage, verifySlackRequest, ephemeralMessage } = require('./util');
+const { buildPollMessage, verifySlackRequest, ephemeralMessage, getSqlClient, sql } = require('./util');
 
-const faunadb = require("faunadb");
-const q = faunadb.query;
 
-const client = new faunadb.Client({ secret: process.env.FAUNA_SECRET });
 const slackSigningSecret = process.env.SLACK_SIGNING_SECRET
-
 
 // Slack is stupid and sends form encoded json
 const parseBody = async (req) => {
@@ -14,9 +10,6 @@ const parseBody = async (req) => {
   return JSON.parse(body.payload);
 }
 
-const getActionIndex = (body) => {
-  return parseInt(body.actions[0].value)
-}
 
 const getVoteData = (body) => ({
   index: parseInt(body.actions[0].value, 10),
@@ -31,13 +24,63 @@ const extractData = (poll) => ({
   anonymous: poll.data.anonymous,
 })
 
-const vote = ({ callback_id, voter, index }) => {
-  return client.query(q.Call(q.Function("vote"), [callback_id, index, voter]))
-}
+
+const castVoteSql = async ({ sqlClient, callback_id, voter, index }) => {
+  await sqlClient.query('BEGIN');
+
+  try {
+    const { rows: [poll] } = await sqlClient.query(sql`
+      SELECT info
+      FROM poll
+      WHERE callback_id = ${callback_id}
+      FOR UPDATE;
+    `);
+
+    if (!poll) {
+      await sqlClient.query('ROLLBACK');
+      console.error("SQLERROR: poll not found");
+      return "pollNotFound";
+    }
+
+    const info = poll.info;
+
+    const newInfo = {
+      ...info,
+      options: info.options.map(option => {
+        const votes = option.votes.filter(v => v !== voter);
+        if (option.index === index) {
+          votes.push(voter);
+        }
+        return {
+          ...option,
+          votes,
+        };
+      }),
+    };
+
+    await sqlClient.query(sql`
+      UPDATE poll
+      SET info = ${JSON.stringify(newInfo)}::jsonb
+      WHERE callback_id = ${callback_id};
+    `);
+
+
+    await sqlClient.query('COMMIT');
+    return {
+      question: newInfo.question,
+      options: newInfo.options,
+      callback_id,
+      anonymous: newInfo.anonymous,
+    }
+  } catch (e) {
+    await sqlClient.query('ROLLBACK');
+    console.error(e, "SQLERROR: poll action failed");
+  }
+};
 
 const buildResponse = (poll) => {
   return {
-    ...buildPollMessage(extractData(poll)),
+    ...buildPollMessage(poll),
     response_type: "in_channel",
     replace_original: true
   }
@@ -50,7 +93,9 @@ const deleteMessage = ({
 })
 
 export default async (req, res) => {
+  const sqlClient = await getSqlClient();
   try {
+
     const body = await parseBody(req);
 
     console.log(body)
@@ -65,8 +110,10 @@ export default async (req, res) => {
       return;
     }
 
-    const updatedPoll = await vote(getVoteData(body))
-    res.status(200).json(buildResponse(updatedPoll));
+    const updatedPollSql = await castVoteSql({sqlClient, ...getVoteData(body)});
+
+    
+    res.status(200).json(buildResponse(updatedPollSql));
 
   } catch (e) {
     console.error(e)
@@ -76,6 +123,8 @@ export default async (req, res) => {
       replace_original: false
     })
 
+  } finally {
+    await sqlClient.release();
   }
 };
 

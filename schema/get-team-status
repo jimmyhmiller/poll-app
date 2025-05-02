@@ -1,0 +1,25 @@
+Query(
+  Lambda(
+    ["date", "team-name"],
+    Let(
+      {
+        team: Select(
+          ["ref"],
+          Get(Match(Index("team-by-name"), Casefold(Var("team-name"))))
+        )
+      },
+      Map(
+        Paginate(
+          Match(Index("statuses-by-team-date"), [
+            Var("team"),
+            Date(Var("date"))
+          ])
+        ),
+        Lambda(
+          ["user", "status"],
+          [Select(["data", "name"], Get(Var("user"))), Var("status")]
+        )
+      )
+    )
+  )
+)

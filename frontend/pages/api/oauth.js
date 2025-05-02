@@ -4,15 +4,9 @@ const url = require('url');
 import { v4 as uuid } from 'uuid';
 const querystring = require('querystring');
 const cookie = require('cookie');
-const { createTeamIfNotExists, upsertUserAccessToken, subscribe } = require('./util');
+const { upsertUserAccessTokenSql, subscribe, getSqlClient, upsertTeamSql } = require('./util');
 const stripe = require("stripe")(process.env.STRIPE_SECRET);
 
-
-
-const faunadb = require("faunadb");
-const q = faunadb.query;
-
-const client = new faunadb.Client({ secret: process.env.FAUNA_SECRET });
 
 const rootUrl = "https://slack.com/api/oauth.access"
 
@@ -21,29 +15,31 @@ const clientInfo = {
   client_secret: process.env.CLIENT_SECRET
 }
 
-const upsertUserAndTeamInfo = async ({ team_id, user_id, slack_access_token, access_token }) => {
+const upsertUserAndTeamInfo = async ({ team_id, user_id, slack_access_token, access_token, sqlClient, sql }) => {
   console.log("upserting");
-  const teamInfo = await client.query(
-    upsertUserAccessToken({ team_id, user_id, slack_access_token, access_token })
-  );
 
-  if (teamInfo.data.stripe_id) {
+  const [{rows: [data]}] = await sqlClient.query(upsertTeamSql({team_id}));
+  await sqlClient.query(upsertUserAccessTokenSql({ team_id, user_id, slack_access_token, access_token }));
+  
+
+  if (data.stripe_id) {
     console.log("Found user");
     return teamInfo
   }
 
   const { id: stripe_id } = await stripe.customers.create()
   console.log("Updating with stripe info");
-  const response = await client.query(q.Update(teamInfo.ref, { data: { stripe_id }}))
+  const {rows: [team_data]} = await sqlClient.query(sql`update team set (stripe_id = ${stripe_id}) where team_id = ${team_id}`);
 
-  return response
+  return team_data;
 
 }
 
-// Copied from slack tutorial, needs clean up
 export default async(req, res) => {
 
+  const sqlClient = await getSqlClient();
   try {
+
     const { code, selected } = querystring.parse(url.parse(req.url).query);
     const requestParams = {
       ...clientInfo,
@@ -71,25 +67,24 @@ export default async(req, res) => {
     const access_token = uuid();
 
     console.log(team_id, user_id)
-    const teamInfo = await upsertUserAndTeamInfo({ team_id, user_id, slack_access_token, access_token })
+    const teamInfo = await upsertUserAndTeamInfo({ team_id, user_id, slack_access_token, access_token, sqlClient })
+    // TODO(DB): change the format here
 
     if (selected === "poll-app-personal") {
       console.log("Personal, so subscribing now")
-      const customer = await stripe.customers.retrieve(teamInfo.data.stripe_id, {
+      const customer = await stripe.customers.retrieve(teamInfo.stripe_id, {
         expand: ["subscriptions", "sources"]
       })
 
       await subscribe({
         stripe,
-        client,
-        stripe_id: teamInfo.data.stripe_id,
-        teamRef: teamInfo.ref,
+        stripe_id: teamInfo.stripe_id,
         customer,
-        plan: selected
+        team_id,
+        plan: selected,
+        sqlClient,
       });
     }
-
-
    
     res.setHeader('Set-Cookie', cookie.serialize('access_token', access_token, {
       httpOnly: true
@@ -104,5 +99,7 @@ export default async(req, res) => {
   catch(e) {
     console.error(e)
     res.status(500).json({message: e.message});
+  } finally {
+    await sqlClient.release();
   }
 }

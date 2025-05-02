@@ -1,0 +1,26 @@
+Query(
+  Lambda(
+    ["options", "voter"],
+    Map(
+      Var("options"),
+      Lambda(
+        "option",
+        Let(
+          {
+            votes: Select(["votes"], Var("option")),
+            value: Select(["value"], Var("option")),
+            index: Select(["index"], Var("option"))
+          },
+          {
+            votes: Filter(
+              Var("votes"),
+              Lambda("vote", Not(Equals(Var("voter"), Var("vote"))))
+            ),
+            value: Var("value"),
+            index: Var("index")
+          }
+        )
+      )
+    )
+  )
+)

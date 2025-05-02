@@ -1,0 +1,8 @@
+# file: fauna.config.yaml
+
+# `dev` profile settings
+dev:
+  color: true           
+  database: us/poll2
+  dir: ./schema
+  role: admin       

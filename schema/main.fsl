@@ -1,0 +1,22 @@
+// The following schema is auto-generated.
+// This file contains FSL for FQL10-compatible schema items.
+
+collection teams {
+  history_days 0
+}
+
+collection polls {
+  history_days 0
+}
+
+collection "pocket-users" {
+  history_days 0
+}
+
+collection users {
+  history_days 0
+}
+
+collection migrations {
+  history_days 0
+}

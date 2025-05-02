@@ -1,0 +1,16 @@
+Query(
+  Lambda(
+    ["poll", "position", "voter"],
+    Let(
+      {
+        votes: Select(
+          ["data", "options", Var("position"), "votes"],
+          Var("poll")
+        )
+      },
+      IsNonEmpty(
+        Filter(Var("votes"), Lambda("vote", Equals(Var("vote"), Var("voter"))))
+      )
+    )
+  )
+)

@@ -1,0 +1,25 @@
+Query(
+  Lambda(
+    ["user-name", "team-name", "date", "status"],
+    Let(
+      {
+        user: Select(
+          ["ref"],
+          Get(Match(Index("user-by-name"), Casefold(Var("user-name"))))
+        ),
+        team: Select(
+          ["ref"],
+          Get(Match(Index("team-by-name"), Casefold(Var("team-name"))))
+        )
+      },
+      Create(Class("statuses"), {
+        data: {
+          user: Var("user"),
+          date: Date(Var("date")),
+          team: Var("team"),
+          status: Var("status")
+        }
+      })
+    )
+  )
+)

@@ -1,9 +1,46 @@
 import { v4 as uuid } from 'uuid';
+import { Client, Pool } from 'pg'
+
+
+const sqlPool = new Pool({
+  user: process.env.SQL_USER,
+  password: process.env.SQL_PASSWORD,
+  host: process.env.SQL_HOST,
+  port: process.env.SQL_PORT,
+  database: process.env.SQL_DATABASE,
+  ssl: {
+    ca: process.env.POSTGRES_CERT,
+  },
+})
+
+const getSqlClient = async () => {
+  const client = await sqlPool.connect()
+  return {
+    release: async function() {
+      try {
+        console.log("Ending SQL connection");
+        client.release();
+      } catch (e) {
+        console.error(e, "Could not end");
+      }
+    },
+    query: async function(query) {
+      try {
+        console.log("Querying", query);
+        // Intentionally awaiting here so I can catch the error
+        var result = await client.query(query);
+        return result;
+      } catch (e) {
+        console.error(e, "SQLERROR: Could not query", query);
+      }
+    }
+  }
+}
+
+
 const partitionAll = require('partition-all');
 const crypto = require('crypto');
 const timingSafeCompare = require('tsscmp')
-const faunadb = require("faunadb");
-const q = faunadb.query;
 
 const cleanString = (str) =>
   str.replace(/"/g, '')
@@ -106,7 +143,7 @@ const buildActions = (options) => {
     type: "button",
     value: `${i}`,
     name: `${i}`,
-  })).concat([deleteButton])
+  }))
 }
 
 const buildActionAttachments = (options, callback_id) => {
@@ -170,21 +207,7 @@ const buildOptions = (options) => {
   }))
 }
 
-const createIfNotExists = (className, ref, value) =>
-  q.If(q.Not(q.Exists(ref)),
-    q.Select("ref", q.Create(q.Class(className), value)),
-    q.Select("ref", q.Get(ref)))
 
- const upsert = (className, ref, value) =>
-  q.If(q.Not(q.Exists(ref)),
-    q.Select("ref", q.Create(q.Class(className), value)),
-    q.Do(
-      q.Update(q.Select("ref", q.Get(ref)), value),
-      q.Select("ref", q.Get(ref))))
-
-
-const matchIndex = (index, value) =>
-  q.Match(q.Index(index), value)
 
 const today = () => new Date().toISOString().substring(0, 10)
 
@@ -207,107 +230,94 @@ const startOfMonth = () =>
   `${today().substring(0, 7)}-01`
 
 
-const currentCount = (poll) => {
-  return q.Select(
-    ["data", "monthlyCounts", startOfMonth()],
-    q.Get(poll.data.team),
-    0
-  )
+const maxCountSql = (team_id) => sql`
+  SELECT COALESCE(max_count, 0) AS max_count
+  FROM team
+  WHERE team_id = ${team_id};
+  `
+
+
+const setExpirationDateSql = (date, team_id) => sql`
+  UPDATE team
+  SET expiration_date = ${date}
+  WHERE team_id = ${team_id};
+  `
+
+const teamIsExpiredSql = (team_id) => sql`
+  SELECT CURRENT_DATE > COALESCE(expiration_date, CURRENT_DATE + INTERVAL '1 day') AS expired
+  FROM team
+  WHERE team_id = ${team_id};
+  `
+
+const incrementMonthSql = ({ team_id }) => sql`
+  INSERT INTO team_monthly_counts (team_id, month, count)
+  VALUES (${team_id}, date_trunc('month', CURRENT_DATE), 1)
+  ON CONFLICT (team_id, month) DO UPDATE
+  SET count = team_monthly_counts.count + 1;
+  `
+
+const createTeamIfNotExistsSql = (team_id) => sql`
+INSERT INTO team (team_id, string_id)
+VALUES (${team_id}, ${team_id})
+ON CONFLICT (team_id) DO NOTHING;
+`
+
+const userInfoByAccessTokenSql = (access_token) => 
+  sql`
+  select u.*
+  from user_data u
+  where u.access_token = ${access_token}`
+
+
+function sql(textFragments, ...values) {
+  let text = ''
+  for (let i = 0; i < textFragments.length; ++i) {
+    if (text !== '') {
+      text += `$${i}`
+    }
+    text += textFragments[i]
+  }
+  return { text, values }
 }
 
-const maxCount = (poll) => {
+const teamInfoByAccessTokenSql = (access_token) => 
+  sql`
+    select t.*
+    from team t
+    join user_data u on t.id = u.team_id
+    where u.access_token = ${access_token}`
 
-  return q.Select(
-    ["data", "maxCount"],
-    q.Get(poll.data.team),
-    0
-  )
-}
-
-const setExpirationDate = (date, team_id) => {
-  const teamRef = q.Select("ref", q.Get(matchIndex("test-teams-by-team-id", team_id)));
-  return (
-    q.Update(teamRef, {
-      data: {
-        expirationDate: date && q.Date(date)
-      }
-    })
-  )
-}
-
-const teamIsExpired = (poll) => {
-  const defaultValue = q.Date(addDays(today(), 1));
-  const todaysDate = q.Date(today());
-
-  // Default value is tomorrow so it is always greater than today.
-  // This works even if we somehow crossed a day boundry between
-  // these two lines of code.
-  return (
-    q.GT(
-      todaysDate,
-      q.Select(
-        ["data", "expirationDate"],
-        q.Get(poll.data.team),
-        defaultValue)
-    )
-  )
-}
-
-const incrementMonth = (poll) => {
-  const now = startOfMonth();
-  const teamRef = q.Select("ref", q.Get(poll.data.team));
-  return (
-    q.Let({
-      currentCount: currentCount(poll)
-    },
-      q.Update(teamRef, {
-        data: {
-          monthlyCounts: {
-            [now]: q.Add(1, q.Var("currentCount"))
-          }
-        }
-      })
-    )
-  )
-}
-
-const refByIndex = (index, value) => q.Match(q.Index(index), value)
-
-const getRefByIndex = (index, value) =>
-  q.Select("ref", q.Get(q.Match(q.Index(index), value)))
-
-const createTeamIfNotExists = (team_id) => {
-  const teamRef = matchIndex("test-teams-by-team-id", team_id);
-  return createIfNotExists("teams", teamRef, { data: { team_id }})
-}
+const upsertTeamSql = ({ team_id }) => sql`
+INSERT INTO team (team_id)
+SELECT ${team_id}
+WHERE NOT EXISTS (
+  SELECT 1 FROM team WHERE team_id = ${team_id}
+);
+RETURNING *;
+`;
 
 
-const userInfoByAccessToken = ({ access_token }) => {
-  return q.Get(matchIndex("test-get-user-by-access-token", access_token))
-}
-
-const teamInfoByAccessToken = ({ access_token }) => {
-   return q.Get(q.Select(["data", "team"], userInfoByAccessToken({ access_token })))
-}
-
-const upsertUserAccessToken = ({ team_id, user_id, slack_access_token, access_token }) => {
-  const team = refByIndex("test-teams-by-team-id", team_id);
-  const userRef = refByIndex("test-users-by-user-id", user_id);
-  return (
-    q.Let({team_ref: createIfNotExists("teams", team, { data: { team_id }})},
-       q.Do(
-          upsert("users", userRef, { data: { user_id, slack_access_token, access_token, team: q.Var("team_ref")}}),
-          q.Get(q.Var("team_ref"))
-      )
-    )
-  )
-}
+const upsertUserAccessTokenSql = ({ team_id, user_id, slack_access_token, access_token }) => sql`
+WITH team_lookup AS (
+  SELECT id
+  FROM team
+  WHERE team_id = ${team_id}
+)
+INSERT INTO user_data (user_id, team_id, slack_token_id, access_token)
+SELECT ${user_id}, team_lookup.id, ${slack_access_token}, ${access_token}
+FROM team_lookup
+ON CONFLICT (user_id) DO UPDATE SET
+  team_id = EXCLUDED.team_id,
+  slack_token_id = EXCLUDED.slack_token_id,
+  access_token = EXCLUDED.access_token
+RETURNING *;
+`;
 
 const buildPoll = ({question, options, body, anonymous}) => {
   return {
     data: {
       callback_id: uuid(),
-      team: getRefByIndex("test-teams-by-team-id", body.team_id),
+      team: body.team_id,
       anonymous,
       question,
       options,
@@ -322,8 +332,13 @@ const monthlyCounts = {
   "poll-app-enterprise": 10000,
 }
 
-const setPlan = ({ teamRef, plan }) =>
-  q.Update(teamRef, {data: {maxCount: monthlyCounts[plan], expirationDate: null}})
+
+const setPlanSql = ({ team_id, plan }) => sql`
+  UPDATE team
+  SET max_count = ${monthlyCounts[plan]},
+      expiration_date = NULL
+  WHERE team_id = ${team_id};
+  `
 
 const fetchStripeSubscription = async ({ stripe, stripe_id }) => {
   console.log(customer)
@@ -341,16 +356,14 @@ const addTrialInfo = async ({stripe, subscription, fromPlan, toPlan}) => {
   }
 }
 
-const subscribe = async ({ customer, client, plan, stripe, teamRef, stripe_id }) => {
+const subscribeStripe = async ({ customer, plan, stripe, stripe_id }) => {
   const subscription = customer.subscriptions.data[0]
   const fromPlan = subscription && subscription.items.data[0].plan.id;
   if (subscription && fromPlan && fromPlan !== plan) {
     await addTrialInfo({stripe, subscription, fromPlan, toPlan: plan})
     await stripe.subscriptionItems.update(subscription.items.data[0].id, {
       plan,
-
     })
-    await client.query(setPlan({ teamRef, plan }))
     return subscription;
   }
 
@@ -360,9 +373,19 @@ const subscribe = async ({ customer, client, plan, stripe, teamRef, stripe_id })
     trial_from_plan: true
   })
 
-  await client.query(setPlan({ teamRef, plan }))
   return newSubscription;
 }
+
+const updateSubscriptionPlanSql = async ({ team_id, sqlClient, plan }) => {
+  return sqlClient.query(setPlanSql({ team_id, plan }))
+}
+
+const subscribe = async ({ stripe, stripe_id, customer, plan, sqlClient, team_id }) => {
+  const subscription = await subscribeStripe({ stripe, customer, plan, stripe_id })
+  await updateSubscriptionPlanSql({ team_id, sqlClient, plan })
+  return subscription;
+}
+
 
 const verifySlackMessage = ({ slackSigningSecret, requestSignature, timestamp, body }) => {
   try {
@@ -411,24 +434,25 @@ module.exports = {
   buildPoll,
   buildOptions,
   parseMessage,
-  createTeamIfNotExists,
-  incrementMonth,
-  currentCount,
-  maxCount,
-  teamIsExpired,
+  createTeamIfNotExistsSql,
+  incrementMonthSql,
+  maxCountSql,
+  teamIsExpiredSql,
   ephemeralMessage,
-  setExpirationDate,
+  setExpirationDateSql,
   addDays,
   addDaysEpoch,
   today,
-  upsertUserAccessToken,
-  userInfoByAccessToken,
-  teamInfoByAccessToken,
+  upsertUserAccessTokenSql,
+  userInfoByAccessTokenSql,
+  teamInfoByAccessTokenSql,
+  upsertTeamSql,
   monthlyCounts,
+  setPlanSql,
   addFooterToMessage,
-  getRefByIndex,
-  upsert,
-  refByIndex,
   subscribe,
+  updateSubscriptionPlanSql,
   verifySlackRequest,
+  getSqlClient,
+  sql,
 }
