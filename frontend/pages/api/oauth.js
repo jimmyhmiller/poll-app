@@ -4,7 +4,7 @@ const url = require('url');
 import { v4 as uuid } from 'uuid';
 const querystring = require('querystring');
 const cookie = require('cookie');
-const { upsertUserAccessTokenSql, subscribe, getSqlClient, upsertTeamSql } = require('./util');
+const { upsertUserAccessTokenSql, subscribe, getSqlClient, upsertTeamSql, getTeamByTeamIdSql, sql } = require('./util');
 const stripe = require("stripe")(process.env.STRIPE_SECRET);
 
 
@@ -15,21 +15,23 @@ const clientInfo = {
   client_secret: process.env.CLIENT_SECRET
 }
 
-const upsertUserAndTeamInfo = async ({ team_id, user_id, slack_access_token, access_token, sqlClient, sql }) => {
+const upsertUserAndTeamInfo = async ({ team_id, user_id, slack_access_token, access_token, sqlClient }) => {
   console.log("upserting");
 
-  const [{rows: [data]}] = await sqlClient.query(upsertTeamSql({team_id}));
+  await sqlClient.query(upsertTeamSql({team_id}));
+  const {rows: [teamInfo]} = await sqlClient.query(getTeamByTeamIdSql({team_id}));
   await sqlClient.query(upsertUserAccessTokenSql({ team_id, user_id, slack_access_token, access_token }));
   
 
-  if (data.stripe_id) {
+  if (teamInfo.stripe_id) {
     console.log("Found user");
     return teamInfo
   }
 
   const { id: stripe_id } = await stripe.customers.create()
   console.log("Updating with stripe info");
-  const {rows: [team_data]} = await sqlClient.query(sql`update team set (stripe_id = ${stripe_id}) where team_id = ${team_id}`);
+  await sqlClient.query(sql`update team set stripe_id = ${stripe_id} where team_id = ${team_id}`);
+  const {rows: [team_data]} = await sqlClient.query(getTeamByTeamIdSql({team_id}));
 
   return team_data;
 

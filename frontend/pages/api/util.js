@@ -288,12 +288,16 @@ const teamInfoByAccessTokenSql = (access_token) =>
     where u.access_token = ${access_token}`
 
 const upsertTeamSql = ({ team_id }) => sql`
+WITH upsert AS (
+  SELECT ${team_id} AS team_id
+  WHERE NOT EXISTS (SELECT 1 FROM team WHERE team_id = ${team_id})
+)
 INSERT INTO team (team_id)
-SELECT ${team_id}
-WHERE NOT EXISTS (
-  SELECT 1 FROM team WHERE team_id = ${team_id}
-);
-RETURNING *;
+SELECT team_id FROM upsert;
+`;
+
+const getTeamByTeamIdSql = ({ team_id }) => sql`
+SELECT * FROM team WHERE team_id = ${team_id}
 `;
 
 
@@ -447,6 +451,7 @@ module.exports = {
   userInfoByAccessTokenSql,
   teamInfoByAccessTokenSql,
   upsertTeamSql,
+  getTeamByTeamIdSql,
   monthlyCounts,
   setPlanSql,
   addFooterToMessage,
